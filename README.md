@@ -43,12 +43,12 @@ We believe we make the following factors:
 
 | work | kind | comment |
 | -- | -- | -- |
-| Enable@SC21 | runtime | a collection of parallel operators |
-| IOS@MLSys21 | runtime | a collection of parallel operators |
-| NN-Meter@MobiSys21 | runtime | a collection of certain fused operators |
-| Habitate@ATC21 | runtime | complex performance model |
-| Empirical@IICSW21 | runtime | heavy operators with different input |
-| Enabling@ICS21 | runtime | operators with different energy consumptions |
+| Enable@SC21 | runtime | a collection of parallel operators in different DL models |
+| IOS@MLSys21 | runtime | a collection of parallel operators in one DL model |
+| NN-Meter@MobiSys21 | runtime | a collection of certain sequential fused operators |
+| Habitate@ATC21 | runtime | a manual and complex performance model in one DL model |
+| Empirical@IICSW21 | runtime | heavy operators with different input in one DL model |
+| Enabling@ICS21 | runtime | operators with different energy consumptions in one DL model|
 | BOLT@MobiSys22| compile | operators with certain templates |
 | Lorien@SoCC22| compile | store and query operator performance in Nosql, qucick one-shot auto-ML performance data |
 | MAPLE-Edge@ArXiv22| compile | operator performance within optimized graph |
