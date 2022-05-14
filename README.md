@@ -38,3 +38,18 @@ We believe we make the following factors:
 1. CPU: amd64,arm64
 2. GPU: Nvidia Turing/Kepler
 3. FPGA: xilinx zynq/ultrascale 
+
+# Existing work comparison
+
+| work | kind | comment |
+| -- | -- | -- |
+| Enable@SC21 | runtime | a collection of parallel operators |
+| IOS@MLSys21 | runtime | a collection of parallel operators |
+| NN-Meter@MobiSys21 | runtime | a collection of certain fused operators |
+| Habitate@ATC21 | runtime | complex performance model |
+| Empirical@IICSW21 | runtime | heavy operators with different input |
+| Enabling@ICS21 | runtime | operators with different energy consumptions |
+| BOLT@MobiSys22| compile | operators with certain templates |
+| Lorien@SoCC22| compile | store and query operator performance in Nosql, qucick one-shot auto-ML performance data |
+| MAPLE-Edge@ArXiv22| compile | operator performance within optimized graph |
+| Rammer@OSDI20| compile | certain inter- and intra- operator performance |
