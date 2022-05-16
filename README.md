@@ -48,8 +48,9 @@ We believe we make the following factors:
 | NN-Meter@MobiSys21 | runtime | a collection of certain sequential fused operators |
 | Habitate@ATC21 | runtime | a manual and complex performance model in one DL model |
 | Empirical@IICSW21 | runtime | heavy operators with different input in one DL model |
-| Enabling@ICS21 | runtime | operators with different energy consumptions in one DL model|
-| BOLT@MobiSys22| compile | operators with certain templates |
-| Lorien@SoCC22| compile | store and query operator performance in Nosql, qucick one-shot auto-ML performance data |
-| MAPLE-Edge@ArXiv22| compile | operator performance within optimized graph |
+| GPU-FPGA@ICS21 | runtime | operators with different energy consumptions in one DL model|
+| MAPLE-Edge@ArXiv22| runtime | operator performance within optimized graph |
+| runtime@IPDPS 19| runtime |inter- and intra- operator performance with different CPU threads |
+| BOLT@MLSys22| compile | operators with certain templates |
+| Lorien@SoCC21| compile | store and query operator performance in Nosql, qucick one-shot auto-ML performance data |
 | Rammer@OSDI20| compile | certain inter- and intra- operator performance |
