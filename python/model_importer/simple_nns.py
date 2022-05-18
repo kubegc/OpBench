@@ -13,54 +13,56 @@ import logging
 
 logging.basicConfig(level=logging.INFO,filename="/root/github/logs/runpass.log")
 
+def get_simple_network():
+    dshape = (2048, 2048)
+    x = relay.var("x", shape=dshape)
+    y = relay.var("y", shape=dshape)
+    z = relay.var("z", shape=dshape)
+    a = relay.var("a", shape=dshape)
+    b = relay.nn.matmul(x, y)
+    c = relay.nn.matmul(z, a)
+    d = relay.add(b,c)
+    func = relay.Function(relay.analysis.free_vars(d), d)
+    mod = tvm.IRModule()
+    mod["main"] = func
+    mod = relay.transform.InferType()(mod)
+    target = "llvm"
+    dtype = "float32"
+    device = tvm.cpu()
+    model_params = {}
+    x = np.random.uniform(5,10,dshape).astype("float32")
+    y = np.random.uniform(5,10,dshape).astype("float32")
+    z = np.random.uniform(5,10,dshape).astype("float32")
+    a = np.random.uniform(5,10,dshape).astype("float32")
+    with tvm.transform.PassContext(opt_level=0, disabled_pass=["AlterOpLayout"]):
+        lib = relay.build(mod, target=target, params=model_params)
+        print(type(lib.get_graph_json()))
+        print(type(lib.get_lib()))
+        m = graph_executor.create(lib.get_graph_json(), lib.get_lib(), device, dump_root="/root/github/log")
+        m.set_input('x',tvm.nd.array(x.astype(dtype)))
+        m.set_input('y',tvm.nd.array(y.astype(dtype)))
+        m.set_input('z',tvm.nd.array(z.astype(dtype)))
+        m.set_input('a',tvm.nd.array(a.astype(dtype)))
+        m.run()
+        tvm_out = m.get_output(0, tvm.nd.empty(dshape, dtype)).numpy()
+        print(tvm_out)
+    return lib, m, tvm_out
 
-dshape = (2048, 2048)
-x = relay.var("x", shape=dshape)
-y = relay.var("y", shape=dshape)
-z = relay.var("z", shape=dshape)
-a = relay.var("a", shape=dshape)
-b = relay.nn.matmul(x, y)
-c = relay.nn.matmul(z, a)
-d = relay.add(b,c)
+
 # y = relay.nn.conv2d(x, relay.var("w1"), kernel_size=(1, 1), padding=(0, 0), channels=16)
 # y1 = relay.add(relay.const(1, "float32"), y)
 # y = relay.add(y, y1)
 # z2 = relay.nn.conv2d(y, relay.var("w2"), kernel_size=(1, 1), padding=(0, 0), channels=16)
 # z3 = relay.nn.conv2d(y, relay.var("w3"), kernel_size=(1, 1), padding=(0, 0), channels=16)
 # z = relay.add(z2, z3)
-func = relay.Function(relay.analysis.free_vars(d), d)
 # func = run_opt_pass(func, transform.FuseOps(fuse_opt_level=2))
 
-mod = tvm.IRModule()
-mod["main"] = func
-mod = relay.transform.InferType()(mod)
 
-target = "llvm"
-# target = "cuda"
-dtype = "float32"
-device = tvm.cpu()
 # device = tvm.cuda(0)
-model_params = {}
+
 # model_params["w1"] = np.random.uniform(0,10,(16, 16, 1, 1)).astype("float32")
 # model_params["w2"] = np.random.uniform(0,10,(16, 16, 1, 1)).astype("float32")
 # model_params["w3"] = np.random.uniform(0,10,(16, 16, 1, 1)).astype("float32")
-x = np.random.uniform(5,10,dshape).astype("float32")
-y = np.random.uniform(5,10,dshape).astype("float32")
-z = np.random.uniform(5,10,dshape).astype("float32")
-a = np.random.uniform(5,10,dshape).astype("float32")
-
-with tvm.transform.PassContext(opt_level=0, disabled_pass=["AlterOpLayout"]):
-   lib = relay.build(mod, target=target, params=model_params)
-   print(type(lib.get_graph_json()))
-   print(type(lib.get_lib()))
-   m = graph_executor.create(lib.get_graph_json(), lib.get_lib(), device, dump_root="/root/github/log")
-   m.set_input('x',tvm.nd.array(x.astype(dtype)))
-   m.set_input('y',tvm.nd.array(y.astype(dtype)))
-   m.set_input('z',tvm.nd.array(z.astype(dtype)))
-   m.set_input('a',tvm.nd.array(a.astype(dtype)))
-   m.run()
-   tvm_out = m.get_output(0, tvm.nd.empty(dshape, dtype)).numpy()
-   print(tvm_out)
 
 # lib = relay.build(mod, target=target, params=model_params)
 # m = graph_executor.create(lib["get_graph_json"](), lib, device, dump_root="/root/github/logs")
