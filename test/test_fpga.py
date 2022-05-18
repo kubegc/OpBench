@@ -22,6 +22,8 @@ assert tvm.runtime.enabled("rpc")
 
 # Load VTA parameters from the 3rdparty/vta-hw/config/vta_config.json file
 env = vta.get_env()
+image_dir = "/root/github/OpBench/resources/images/"
+txt_dir = "/root/github/OpBench/resources/txt/"
 
 # Set ``device=arm_cpu`` to run inference on the CPU
 # or ``device=vta`` to run inference on the FPGA.
@@ -162,13 +164,13 @@ with autotvm.tophub.context(target):
 
 # Download ImageNet categories
 categ_url = "https://github.com/uwsampl/web-data/raw/main/vta/models/"
-categ_fn = "synset.txt"
+categ_fn = image_dir + "synset.txt"
 download.download(join(categ_url, categ_fn), categ_fn)
 synset = eval(open(categ_fn).read())
 
 # Download test image
 image_url = "https://homes.cs.washington.edu/~moreau/media/vta/cat.jpg"
-image_fn = "cat.png"
+image_fn = txt_dir +"cat.png"
 download.download(image_url, image_fn)
 
 # Prepare test image for inference
