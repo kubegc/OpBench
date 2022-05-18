@@ -1,48 +1,29 @@
-import subprocess
 import os
-import sys
 import posixpath
-from typing import Sequence
 from six.moves.urllib.request import urlretrieve
 import glob
-
+import tarfile
 import onnx
 import numpy as np
 import tvm
 import tvm.relay as relay
 # from tvm.contrib import graph_executor
 from tvm.contrib.debugger import debug_executor as graph_executor
-from tvm.runtime.vm import VirtualMachine
 from onnx.tools import update_model_dims
 
 base_path = '/root/github/onnx-models/'
-
-batch = 1
-sequence = 128
+dump_path = '/root/github/debug_dump/'
 
 def get_value_info_shape(value_info):
     return tuple([max(d.dim_value, 1) for d in value_info.type.tensor_type.shape.dim])
 
-urls = [
-    # 'https://github.com/onnx/models/raw/master/vision/object_detection_segmentation/yolov4/model/yolov4.tar.gz',
-    # 'https://github.com/onnx/models/raw/master/text/machine_comprehension/bert-squad/model/bertsquad-10.tar.gz',
-    # 'https://github.com/onnx/models/raw/master/text/machine_comprehension/roberta/model/roberta-base-11.tar.gz',
-    # XXX: Often segfaults
-    # 'https://github.com/onnx/models/raw/master/text/machine_comprehension/gpt-2/model/gpt2-10.tar.gz',
-    # checked:
-    'https://github.com/onnx/models/blob/master/text/machine_comprehension/t5/model/t5-decoder-with-lm-head-12.tar.gz'
-    # 'https://github.com/onnx/models/blob/master/text/machine_comprehension/t5/model/t5-encoder-12.tar.gz'
-]
-target = tvm.target.Target("cuda")
-# target = "llvm"
-dev = tvm.device(str(target), 0)
-ctx = tvm.device(str(target), 0)
-network = ''
-name = ''
-summary = []
-for url in urls:
-    print(f'==> {url} <==')
-
+def get_onnx_with_url(url, batch = 1, sequence = 128, target = tvm.target.Target("cuda"), if_run = True):
+    # print(f'==> {url} <==')
+    model_file = ''
+    dev = tvm.device(str(target), 0)
+    network = ''
+    name = ''
+    summary = []
     archive = posixpath.basename(url)
     archive = base_path + archive
     if not os.path.exists(archive):
@@ -51,8 +32,6 @@ for url in urls:
         assert os.path.exists(archive)
     else:
         print('Already downloaded.')
-
-    import tarfile
     tar = tarfile.open(archive, 'r:gz')
     for n in tar.getnames():
         if n.endswith('.onnx'):
@@ -65,7 +44,6 @@ for url in urls:
 
     if not os.path.exists(model_file):
         print(f'Extracting {archive} ...')
-        #subprocess.call(['tar', 'xzf', archive])
         tar.extractall(name)
         assert os.path.exists(model_file)
 
@@ -97,7 +75,7 @@ for url in urls:
                 x = onnx.numpy_helper.to_array(tensor)
                 input_values.append(x)
                 shape_dict[input.name] = x.shape
-                inputs[input.name] = tvm.nd.array(x, ctx)
+                inputs[input.name] = tvm.nd.array(x, dev)
         print(f'Input shapes: {shape_dict}')
     elif name.endswith('t5-decoder-with-lm-head'):
         onnx_model = update_model_dims.update_inputs_outputs_dims(onnx_model, {'input_ids': [batch, sequence],'encoder_hidden_states': [batch, sequence,768]},{'hidden_states':[batch, sequence, 32128]})
@@ -120,15 +98,16 @@ for url in urls:
             lib = relay.build(mod, target=target, params=params)
             # vm_exec = relay.vm.compile(mod, target, params=params)
             # module = graph_executor.GraphModule(lib["default"](dev))
-            module = graph_executor.create(lib.get_graph_json(),lib.get_lib(), dev, dump_root = '/root/github/debug_dump/' + network)
+            module = graph_executor.create(lib.get_graph_json(),lib.get_lib(), dev, dump_root = dump_path + network)
         # vm = VirtualMachine(vm_exec, dev)
         if name.endswith('t5-decoder-with-lm-head'):
             module.set_input("input_ids", inputs['input_ids'])
             module.set_input("encoder_hidden_states", inputs['encoder_hidden_states'])
         elif name.endswith('t5-encoder'):
             module.set_input("input_ids", inputs['input_ids'])
-        print(f"Running inference...")
-        module.run()
+        if if_run:
+            print(f"Running inference...")
+            module.run()
         # ftimer = module.module.time_evaluator("run", dev, repeat=3, min_repeat_ms=500)
         # prof_res = np.array(ftimer().results) * 1e3  # convert to millisecond
         # print("Mean inference time (std dev): %.2f ms (%.2f ms)" % (np.mean(prof_res), np.std(prof_res)))
@@ -141,8 +120,20 @@ for url in urls:
         print(f'Succeeded!')
         result = 'ok'
     summary.append((result, url))
-    print()
+    if if_run:
+        print('Summary:')
+        for result, url in summary:
+            print(f'{result}\t- {url}')
+    return lib, module, summary
 
-print('Summary:')
-for result, url in summary:
-    print(f'{result}\t- {url}')
+
+urls = [
+    # 'https://github.com/onnx/models/raw/master/vision/object_detection_segmentation/yolov4/model/yolov4.tar.gz',
+    # 'https://github.com/onnx/models/raw/master/text/machine_comprehension/bert-squad/model/bertsquad-10.tar.gz',
+    # 'https://github.com/onnx/models/raw/master/text/machine_comprehension/roberta/model/roberta-base-11.tar.gz',
+    # XXX: Often segfaults
+    # 'https://github.com/onnx/models/raw/master/text/machine_comprehension/gpt-2/model/gpt2-10.tar.gz',
+    # checked:
+    'https://github.com/onnx/models/blob/master/text/machine_comprehension/t5/model/t5-decoder-with-lm-head-12.tar.gz'
+    # 'https://github.com/onnx/models/blob/master/text/machine_comprehension/t5/model/t5-encoder-12.tar.gz'
+]
