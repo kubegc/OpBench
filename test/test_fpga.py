@@ -2,6 +2,7 @@ import argparse, json, os, requests, sys, time
 from io import BytesIO
 from os.path import join, isfile
 from PIL import Image
+from pathlib import Path
 
 from mxnet.gluon.model_zoo import vision
 import numpy as np
@@ -57,8 +58,8 @@ if env.TARGET not in ["sim", "tsim", "intelfocl"]:
     # Otherwise if you have a device you want to program directly from
     # the host, make sure you've set the variables below to the IP of
     # your board.
-    device_host = os.environ.get("VTA_RPC_HOST", "133.133.135.18")
-    device_port = os.environ.get("VTA_RPC_PORT", "9092")
+    device_host = os.environ.get("VTA_RPC_HOST", "133.133.135.19")
+    device_port = os.environ.get("VTA_RPC_PORT", "9091")
     if not tracker_host or not tracker_port:
         print("remote")
         remote = rpc.connect(device_host, int(device_port))
@@ -164,14 +165,16 @@ with autotvm.tophub.context(target):
 
 # Download ImageNet categories
 categ_url = "https://github.com/uwsampl/web-data/raw/main/vta/models/"
-categ_fn = image_dir + "synset.txt"
-download.download(join(categ_url, categ_fn), categ_fn)
-synset = eval(open(categ_fn).read())
+categ_fn = "synset.txt"
+if ~Path(txt_dir+categ_fn).exists():
+    download.download(join(categ_url, categ_fn), txt_dir+categ_fn)
+synset = eval(open(txt_dir+categ_fn).read())
 
 # Download test image
 image_url = "https://homes.cs.washington.edu/~moreau/media/vta/cat.jpg"
-image_fn = txt_dir +"cat.png"
-download.download(image_url, image_fn)
+image_fn = image_dir +"cat.png"
+if ~Path(image_fn).exists():
+    download.download(image_url, image_fn)
 
 # Prepare test image for inference
 image = Image.open(image_fn).resize((224, 224))
