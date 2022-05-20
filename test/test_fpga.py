@@ -64,6 +64,7 @@ if env.TARGET not in ["sim", "tsim", "intelfocl"]:
         print("remote")
         remote = rpc.connect(device_host, int(device_port))
     else:
+        print("remote2")
         remote = autotvm.measure.request_remote(
             env.TARGET, tracker_host, int(tracker_port), timeout=10000
         )
@@ -195,7 +196,7 @@ m.set_input("data", image)
 num = 4  # number of times we run module for a single measurement
 rep = 3  # number of measurements (we derive std dev from this)
 timer = m.module.time_evaluator("run", ctx, number=num, repeat=rep)
-
+print(env.TARGET)
 if env.TARGET in ["sim", "tsim"]:
     simulator.clear_stats()
     timer()
