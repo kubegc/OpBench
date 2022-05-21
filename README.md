@@ -57,6 +57,6 @@ We believe we make the following factors:
 
 # Design details
 
-0. 
+0. Get operator collections from modern DL models by analyzing TVM RelayIR. And we only concenrate on key operators which consume most execution time.
 
 1. Extract code from Auto tvm (measure_options builder) to get actual operators with certain schedules and input. And extract code from Auto tvm (measure_options runner) to get real hardware settings.
