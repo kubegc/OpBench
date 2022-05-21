@@ -54,3 +54,9 @@ We believe we make the following factors:
 | BOLT@MLSys22| compile | operators with certain templates |
 | Lorien@SoCC21| compile | store and query operator performance in Nosql, qucick one-shot auto-ML performance data |
 | Rammer@OSDI20| compile | certain inter- and intra- operator performance |
+
+# Design details
+
+0. 
+
+1. Extract code from Auto tvm (measure_options builder) to get actual operators with certain schedules and input. And extract code from Auto tvm (measure_options runner) to get real hardware settings.
