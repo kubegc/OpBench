@@ -3,6 +3,7 @@ from tvm import relay
 import tvm.relay.testing
 from tvm.contrib import graph_executor
 import numpy as np
+import json
 
 def compile_without_log(mod, target, params):
     with tvm.transform.PassContext(opt_level=1):
@@ -37,3 +38,9 @@ def evaluate_time_with_tvm_evaluator(module, dev):
     prof_res = np.array(ftimer().results) * 1e3* 1e6  # convert to millisecond
     print("Mean inference time (std dev): %f ns (%f ns)" % (np.mean(prof_res), np.std(prof_res)))
     return np.mean(prof_res), np.std(prof_res)
+
+def analyze_relay_json(json_string):
+    print("original json string:")
+    print(json_string)
+    parsed_json = json.loads(json_string)
+
