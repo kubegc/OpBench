@@ -55,16 +55,21 @@ We believe we make the following factors:
 | Lorien@SoCC21| compile | store and query operator performance in Nosql, qucick one-shot auto-ML performance data |
 | Rammer@OSDI20| compile | certain inter- and intra- operator performance |
 
-# Road map
+# Design Overview
+
+![Design](./resources/images/图片1.png)
+# Roadmap
 
 0. Get operator collections from modern DL models by analyzing TVM RelayIR. And we only concenrate on key operators which consume most execution time.
 
 | main op_name | DL models | input data | parameter data | description |
 | -- | -- | -- | -- | -- |
+|  |  |  |  |  |
+
 
 1. Extract code from Auto tvm (measure_options builder) to get actual operators with certain schedules and input. And extract code from Auto tvm (measure_options runner) to get real hardware settings.
 
 | main op_name | changable configurations | resource usage settings |
 | -- | -- | -- |
-
+|  |  |  |
 2. Combined learning and pattern based DL inferences performance predictor with concurrent operator execution and schedule optimization on heterogeneous resources. 
