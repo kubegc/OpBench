@@ -24,7 +24,7 @@ class FastSoftmaxMutator(tvm.relay.ExprMutator):
 def FastSoftmax(fn, mod, device):
     return FastSoftmaxMutator().visit(fn)
 
-def get_network(name, batch_size, layout="NCHW", dtype="float32", sequence = 128, hidden_size = 768, num_hidden_layers = 12, num_attention_heads = 12, intermediate_size = 3072, max_position_embeddings = 512):
+def get_network(name, batch_size = 1, layout="NCHW", dtype="float32", sequence = 128, hidden_size = 768, num_hidden_layers = 12, num_attention_heads = 12, intermediate_size = 3072, max_position_embeddings = 512):
     """Get the symbol definition and random weight of a network"""
 
     # auto-scheduler prefers NHWC layout
