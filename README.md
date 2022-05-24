@@ -60,16 +60,16 @@ We believe we make the following factors:
 ![Design](./resources/images/图片1.png)
 # Roadmap
 
-0. Get operator collections from modern DL models by analyzing TVM RelayIR. And we only concenrate on key operators which consume most execution time.
+0. Operator side: Get operator collections from modern DL models by analyzing TVM RelayIR. And we only concenrate on key operators which consume most execution time. In addition, extract code from Auto tvm (measure_options builder) to get actual operators with certain schedules and input
 
-| main op_name | DL models | input data | parameter data | description |
+| main op_name | DL models | input data | parameter data | schedule configurations |
 | -- | -- | -- | -- | -- |
 |  |  |  |  |  |
 
 
-1. Extract code from Auto tvm (measure_options builder) to get actual operators with certain schedules and input. And extract code from Auto tvm (measure_options runner) to get real hardware settings.
+1. Hareware side: Extract code from Auto tvm (measure_options builder runner) and graph executor to get real hardware settings, and find out how to control all and each resources.
 
-| main op_name | changable configurations | resource usage settings |
+| harware setting | configuration range | resource usage settings |
 | -- | -- | -- |
 |  |  |  |
 
@@ -77,7 +77,12 @@ We believe we make the following factors:
 
 for single operator optimization, use correlation analysis (execution time & resource setting) to find and predict the most turnaround point in high level dimensions.
 
-for parallel operators on heterogeneous resources without sharing resources, use Nash Equiarilm to minimize the overall cost.
+for parallel operators on heterogeneous resources without sharing resources, use Nash Equilibrium to minimize the overall cost.
 
 for parallel operators on same resources with concurrent execution, use collaboration tuning to maximize the overall performance.
 
+# Furture
+
+3. runtime:
+
+Automotically run sequential and parallel operators with or without sharing resources.
