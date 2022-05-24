@@ -72,4 +72,12 @@ We believe we make the following factors:
 | main op_name | changable configurations | resource usage settings |
 | -- | -- | -- |
 |  |  |  |
-2. Combined learning and pattern based DL inferences performance predictor with concurrent operator execution and schedule optimization on heterogeneous resources. 
+
+2. predictor: 
+
+for single operator optimization, use correlation analysis (execution time & resource setting) to find and predict the most turnaround point in high level dimensions.
+
+for parallel operators on heterogeneous resources without sharing resources, use Nash Equiarilm to minimize the overall cost.
+
+for parallel operators on same resources with concurrent execution, use collaboration tuning to maximize the overall performance.
+
