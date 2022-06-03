@@ -100,7 +100,7 @@ measure_option = autotvm.measure_option(builder="local", runner=autotvm.LocalRun
 # You can use alternatives like XGBTuner.
 tuner = autotvm.tuner.RandomTuner(task)
 tuner.tune(
-    n_trial=10,
+    n_trial=20,
     measure_option=measure_option,
     callbacks=[autotvm.callback.log_to_file("matmul.log")],
 )
