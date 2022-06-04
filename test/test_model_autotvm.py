@@ -111,12 +111,12 @@ for i, task in enumerate(tasks):
     prefix = "[Task %2d/%2d] " % (i + 1, len(tasks))
     tuner_obj = XGBTuner(task, loss_type="rank")
     print(task.config_space)
-    tuner_obj.tune(
-        n_trial=min(tuning_option["trials"], len(task.config_space)),
-        early_stopping=tuning_option["early_stopping"],
-        measure_option=tuning_option["measure_option"],
-        callbacks=[
-            autotvm.callback.progress_bar(tuning_option["trials"], prefix=prefix),
-            autotvm.callback.log_to_file(tuning_option["tuning_records"]),
-        ],
-    )
+    # tuner_obj.tune(
+    #     n_trial=min(tuning_option["trials"], len(task.config_space)),
+    #     early_stopping=tuning_option["early_stopping"],
+    #     measure_option=tuning_option["measure_option"],
+    #     callbacks=[
+    #         autotvm.callback.progress_bar(tuning_option["trials"], prefix=prefix),
+    #         autotvm.callback.log_to_file(tuning_option["tuning_records"]),
+    #     ],
+    # )
