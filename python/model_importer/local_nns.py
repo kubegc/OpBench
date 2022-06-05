@@ -37,7 +37,6 @@ def get_network(name, batch_size = 1, layout="NCHW", dtype="float32", sequence =
 
     input_shape = (batch_size,) + image_shape
     output_shape = (batch_size, 1000)
-    inputs = {}
     if name.startswith("resnet-"):
         n_layer = int(name.split("-")[1])
         mod, params = relay.testing.resnet.get_workload(
@@ -71,4 +70,4 @@ def get_network(name, batch_size = 1, layout="NCHW", dtype="float32", sequence =
     elif name == "inception_v3":
         input_shape = (batch_size, 3, 299, 299) if layout == "NCHW" else (batch_size, 299, 299, 3)
         mod, params = relay.testing.inception_v3.get_workload(batch_size=batch_size, dtype=dtype)
-    return mod, params, input_shape, output_shape,inputs
+    return mod, params, input_shape, output_shape
