@@ -1,0 +1,91 @@
+ConfigSpace (len=308, space_map=
+   0 tile_ic: Split(policy=factors, product=3, num_outputs=2) len=2
+   1 tile_oc: Split(policy=factors, product=64, num_outputs=2) len=7
+   2 tile_ow: Split(policy=verbose, product=112, num_outputs=2) len=11
+   3 unroll_kw: OtherOption([True, False]) len=2
+)ConfigSpace (len=630, space_map=
+   0 tile_ic: Split(policy=factors, product=64, num_outputs=2) len=7
+   1 tile_oc: Split(policy=factors, product=16, num_outputs=2) len=5
+   2 tile_ow: Split(policy=verbose, product=55, num_outputs=2) len=9
+   3 tile_oh: OtherOption([1, 2]) len=2
+)ConfigSpace (len=630, space_map=
+   0 tile_ic: Split(policy=factors, product=16, num_outputs=2) len=5
+   1 tile_oc: Split(policy=factors, product=64, num_outputs=2) len=7
+   2 tile_ow: Split(policy=verbose, product=55, num_outputs=2) len=9
+   3 tile_oh: OtherOption([1, 2]) len=2
+)ConfigSpace (len=630, space_map=
+   0 tile_ic: Split(policy=factors, product=16, num_outputs=2) len=5
+   1 tile_oc: Split(policy=factors, product=64, num_outputs=2) len=7
+   2 tile_ow: Split(policy=verbose, product=55, num_outputs=2) len=9
+   3 unroll_kw: OtherOption([True, False]) len=2
+)ConfigSpace (len=720, space_map=
+   0 tile_ic: Split(policy=factors, product=128, num_outputs=2) len=8
+   1 tile_oc: Split(policy=factors, product=16, num_outputs=2) len=5
+   2 tile_ow: Split(policy=verbose, product=55, num_outputs=2) len=9
+   3 tile_oh: OtherOption([1, 2]) len=2
+)ConfigSpace (len=768, space_map=
+   0 tile_ic: Split(policy=factors, product=128, num_outputs=2) len=8
+   1 tile_oc: Split(policy=factors, product=32, num_outputs=2) len=6
+   2 tile_ow: Split(policy=verbose, product=27, num_outputs=2) len=8
+   3 tile_oh: OtherOption([1, 2]) len=2
+)ConfigSpace (len=768, space_map=
+   0 tile_ic: Split(policy=factors, product=32, num_outputs=2) len=6
+   1 tile_oc: Split(policy=factors, product=128, num_outputs=2) len=8
+   2 tile_ow: Split(policy=verbose, product=27, num_outputs=2) len=8
+   3 tile_oh: OtherOption([1, 2]) len=2
+)ConfigSpace (len=768, space_map=
+   0 tile_ic: Split(policy=factors, product=32, num_outputs=2) len=6
+   1 tile_oc: Split(policy=factors, product=128, num_outputs=2) len=8
+   2 tile_ow: Split(policy=verbose, product=27, num_outputs=2) len=8
+   3 unroll_kw: OtherOption([True, False]) len=2
+)ConfigSpace (len=864, space_map=
+   0 tile_ic: Split(policy=factors, product=256, num_outputs=2) len=9
+   1 tile_oc: Split(policy=factors, product=32, num_outputs=2) len=6
+   2 tile_ow: Split(policy=verbose, product=27, num_outputs=2) len=8
+   3 tile_oh: OtherOption([1, 2]) len=2
+)ConfigSpace (len=900, space_map=
+   0 tile_ic: Split(policy=factors, product=256, num_outputs=2) len=9
+   1 tile_oc: Split(policy=factors, product=48, num_outputs=2) len=10
+   2 tile_ow: Split(policy=verbose, product=13, num_outputs=2) len=5
+   3 tile_oh: OtherOption([1, 2]) len=2
+)ConfigSpace (len=1400, space_map=
+   0 tile_ic: Split(policy=factors, product=48, num_outputs=2) len=10
+   1 tile_oc: Split(policy=factors, product=192, num_outputs=2) len=14
+   2 tile_ow: Split(policy=verbose, product=13, num_outputs=2) len=5
+   3 tile_oh: OtherOption([1, 2]) len=2
+)ConfigSpace (len=1400, space_map=
+   0 tile_ic: Split(policy=factors, product=48, num_outputs=2) len=10
+   1 tile_oc: Split(policy=factors, product=192, num_outputs=2) len=14
+   2 tile_ow: Split(policy=verbose, product=13, num_outputs=2) len=5
+   3 unroll_kw: OtherOption([True, False]) len=2
+)ConfigSpace (len=1600, space_map=
+   0 tile_ic: Split(policy=factors, product=384, num_outputs=2) len=16
+   1 tile_oc: Split(policy=factors, product=48, num_outputs=2) len=10
+   2 tile_ow: Split(policy=verbose, product=13, num_outputs=2) len=5
+   3 tile_oh: OtherOption([1, 2]) len=2
+)ConfigSpace (len=1120, space_map=
+   0 tile_ic: Split(policy=factors, product=384, num_outputs=2) len=16
+   1 tile_oc: Split(policy=factors, product=64, num_outputs=2) len=7
+   2 tile_ow: Split(policy=verbose, product=13, num_outputs=2) len=5
+   3 tile_oh: OtherOption([1, 2]) len=2
+)ConfigSpace (len=630, space_map=
+   0 tile_ic: Split(policy=factors, product=64, num_outputs=2) len=7
+   1 tile_oc: Split(policy=factors, product=256, num_outputs=2) len=9
+   2 tile_ow: Split(policy=verbose, product=13, num_outputs=2) len=5
+   3 tile_oh: OtherOption([1, 2]) len=2
+)ConfigSpace (len=630, space_map=
+   0 tile_ic: Split(policy=factors, product=64, num_outputs=2) len=7
+   1 tile_oc: Split(policy=factors, product=256, num_outputs=2) len=9
+   2 tile_ow: Split(policy=verbose, product=13, num_outputs=2) len=5
+   3 unroll_kw: OtherOption([True, False]) len=2
+)ConfigSpace (len=700, space_map=
+   0 tile_ic: Split(policy=factors, product=512, num_outputs=2) len=10
+   1 tile_oc: Split(policy=factors, product=64, num_outputs=2) len=7
+   2 tile_ow: Split(policy=verbose, product=13, num_outputs=2) len=5
+   3 tile_oh: OtherOption([1, 2]) len=2
+)ConfigSpace (len=1600, space_map=
+   0 tile_ic: Split(policy=factors, product=512, num_outputs=2) len=10
+   1 tile_oc: Split(policy=factors, product=1000, num_outputs=2) len=16
+   2 tile_ow: Split(policy=verbose, product=13, num_outputs=2) len=5
+   3 tile_oh: OtherOption([1, 2]) len=2
+)

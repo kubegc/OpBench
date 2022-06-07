@@ -17,10 +17,10 @@ dump_path = '/root/github/debug_dump/'
 def get_value_info_shape(value_info):
     return tuple([max(d.dim_value, 1) for d in value_info.type.tensor_type.shape.dim])
 
-def get_onnx_with_url(url, batch = 1, sequence = 128, target = tvm.target.Target("cuda"), if_run = True):
+def get_onnx_with_url(url, target, batch = 1, sequence = 128,  if_run = False):
     # print(f'==> {url} <==')
     model_file = ''
-    dev = tvm.device(str(target), 0)
+    dev = tvm.device(target, 0)
     network = ''
     name = ''
     summary = []
@@ -124,7 +124,7 @@ def get_onnx_with_url(url, batch = 1, sequence = 128, target = tvm.target.Target
         print('Summary:')
         for result, url in summary:
             print(f'{result}\t- {url}')
-    return lib, module, summary
+    return network, mod, params, lib, module
 
 
 urls = [

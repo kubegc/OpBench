@@ -23,19 +23,9 @@ class FastSoftmaxMutator(tvm.relay.ExprMutator):
 def FastSoftmax(fn, mod, device):
     return FastSoftmaxMutator().visit(fn)
 
-def get_network(name, batch_size, layout="NCHW", dtype="float32", sequence = 128, hidden_size = 768, num_hidden_layers = 12, num_attention_heads = 12, intermediate_size = 3072, max_position_embeddings = 512):
-    """Get the symbol definition and random weight of a network"""
+def get_network(name, batch_size, dtype = "float32", sequence = 128, hidden_size = 768, num_hidden_layers = 12, num_attention_heads = 12, intermediate_size = 3072, max_position_embeddings = 512):
 
-    # auto-scheduler prefers NHWC layout
-    if layout == "NHWC":
-        image_shape = (224, 224, 3)
-    elif layout == "NCHW":
-        image_shape = (3, 224, 224)
-    else:
-        raise ValueError("Invalid layout: " + layout)
-
-    input_shape = (batch_size,) + image_shape
-    output_shape = (batch_size, 1000)
+    input_shape = ()
     inputs = {}
     if name == 'bert':
         import torch
@@ -150,7 +140,7 @@ def get_network(name, batch_size, layout="NCHW", dtype="float32", sequence = 128
                 layer = gluon.rnn.RNN(hidden_size, num_layers, bidirectional=bidirectional)
             elif mode == "gru":
                 layer = gluon.rnn.GRU(hidden_size, num_layers, bidirectional=bidirectional)
-            else:  # mode == "lstm"
+            else:  
                 layer = gluon.rnn.LSTM(hidden_size, num_layers, bidirectional=bidirectional)
             num_states = 2 if mode == "lstm" else 1
             layer.initialize()
@@ -229,61 +219,8 @@ def get_network(name, batch_size, layout="NCHW", dtype="float32", sequence = 128
     #     )
     #     mod = tvm.IRModule.from_expr(net)
 
-    return mod, params, input_shape, output_shape,inputs
+    return mod, params, input_shape,inputs
 
-network = "roberta"
-batch_size = 128
-layout = "NHWC"
-dtype = "float32"
-# target = tvm.target.Target("cuda")
-target = 'llvm'
-device = tvm.device(str(target), 0)
-if network == 'bert' or network == 'gpt2' or network == 'roberta':
-    mod, params, input_shape, output_shape,inputs = get_network(network, batch_size, layout, dtype=dtype, sequence=128)
-    with tvm.transform.PassContext(opt_level=0, config={"relay.backend.use_auto_scheduler": False}):
-        lib = relay.build(mod, target=target, params=params)
-    module = graph_executor.create(lib.get_graph_json(),lib.get_lib(), device, dump_root = '/root/github/debug_dump/' + network)
-    input_ids = tvm.nd.array((np.random.uniform(size=input_shape)).astype("int64"))
-    module.set_input("input_ids", input_ids)
-    print("Evaluate inference time cost...")
-    module.run()
-elif network == "nasnetalarge":
-    #target = tvm.target.Target("llvm -mcpu=core-avx2")
-    # target = tvm.target.Target("llvm -mcpu=skylake-avx512")
-    mod, params, input_shape, output_shape,inputs = get_network(network, batch_size, layout, dtype=dtype, sequence=128)
-
-    with tvm.transform.PassContext(opt_level=0, config={"relay.backend.use_auto_scheduler": False}):
-        lib = relay.build(mod, target=target, params=params)
-    
-    module = graph_executor.create(lib.get_graph_json(),lib.get_lib(), device, dump_root = '/root/github/debug_dump/' + network)
-    input_ids = tvm.nd.array((np.random.uniform(size=input_shape)).astype("float32"))
-    module.set_input("input0", input_ids)
-    # attention_mask = tvm.nd.array((np.random.uniform(size=shape2)).astype("int64"))
-    # module.set_input("attention_mask", attention_mask)
-    # module.set_input("decoder_input_ids", input_ids)
-    print("Evaluate inference time cost...")
-    module.run()
-
-elif network == 'lstm' or network == 'rnn' or network == 'gru':
-    mod, params, input_shape, output_shape,inputs = get_network(network, batch_size, layout, dtype=dtype, sequence=128)
-    with tvm.transform.PassContext(opt_level=0, config={"relay.backend.use_auto_scheduler": False}):
-        lib = relay.build(mod, target=target, params=params)
-    module = graph_executor.create(lib.get_graph_json(),lib.get_lib(), device, dump_root = '/root/github/debug_dump/' + network)
-    for key in inputs:
-        module.set_input(key, tvm.nd.array(inputs[key].astype("float32")))
-    print("Evaluate inference time cost...")
-    module.run()
-
-elif network == 'dpn68':
-    mod, params, input_shape, output_shape,inputs = get_network(network, batch_size, layout, dtype=dtype, sequence=128)
-    with tvm.transform.PassContext(opt_level=0, config={"relay.backend.use_auto_scheduler": False}):
-        lib = relay.build(mod, target=target, params=params)
-    # module = graph_executor.GraphModule(lib["default"](device))
-    module = graph_executor.create(lib.get_graph_json(),lib.get_lib(), device, dump_root = '/root/github/debug_dump/' + network)
-    input_ids = tvm.nd.array((np.random.uniform(size=input_shape)).astype("float32"))
-    module.set_input("input0", input_ids)
-    print("Evaluate inference time cost...")
-    module.run()
     # ftimer = module.module.time_evaluator("run", device, repeat=3, min_repeat_ms=500)
     # prof_res = np.array(ftimer().results) * 1e3  # convert to millisecond
     # print("Mean inference time (std dev): %.2f ms (%.2f ms)" % (np.mean(prof_res), np.std(prof_res)))
