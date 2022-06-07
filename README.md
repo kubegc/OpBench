@@ -16,6 +16,7 @@ source ./env_var.sh
 ```
 ## exprot config space
 
+For example:
 ```
 python python/performance_collector/config_space_exporter.py --modelsource=local --modelname=resnet-18
 python python/performance_collector/config_space_exporter.py --modelsource=local --modelname=resnet-18 --target=cuda
