@@ -1,6 +1,26 @@
 # OpBench
 Based on TVM. Profiling op performance with many features.
 
+## Environment Preparation
+
+1. install cuda, llvm, pynq and tvm first.
+2. install necessary python librarys by using pip:
+```
+pip3 install psutil xgboost cloudpickle pretrainedmodels cython tensorflow transformers nni six numpy decorator attrs tornado onnx memory_profiler pytest
+pip3 install --user mxnet requests "Pillow<7"
+pip3 install torch==1.8.2+cpu torchvision==0.9.2+cpu torchaudio==0.8.2 -f https://download.pytorch.org/whl/lts/1.8/torch_lts.html
+```
+3. install env path:
+```
+source ./env_var.sh
+```
+## exprot config space
+
+```
+python python/performance_collector/config_space_exporter.py --modelsource=local --modelname=resnet-18
+python python/performance_collector/config_space_exporter.py --modelsource=local --modelname=resnet-18 --target=cuda
+```
+
 # op based computation graph
 
 operator execution time and heterogeneous resource efficiency are affected by many features, includes intra-op parallel implementation, resource usage and inter-op parallel sequence. Only considering them both can gain sufficient operator performance data.
