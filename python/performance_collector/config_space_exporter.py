@@ -14,6 +14,7 @@ import os
 import model_importer.local_nns 
 import model_importer.transformers_nns
 import model_importer.onnx_nns
+import model_importer.simple_nns
 
 # python python/performance_collector/config_space_exporter.py --modelsource=local --modelname=resnet-18
 # python python/performance_collector/config_space_exporter.py --modelsource=local --modelname=resnet-18 --target=cuda
@@ -39,9 +40,12 @@ import model_importer.onnx_nns
 # python python/performance_collector/config_space_exporter.py --modelsource=remoteonnx --modelname=https://github.com/onnx/models/blob/master/text/machine_comprehension/t5/model/t5-decoder-with-lm-head-12.tar.gz --target=cuda
 # python python/performance_collector/config_space_exporter.py --modelsource=remoteonnx --modelname=https://github.com/onnx/models/blob/master/text/machine_comprehension/t5/model/t5-encoder-12.tar.gz --target=llvm
 # python python/performance_collector/config_space_exporter.py --modelsource=remoteonnx --modelname=https://github.com/onnx/models/blob/master/text/machine_comprehension/t5/model/t5-encoder-12.tar.gz --target=cuda
-def findConfigSpace(args,mod):
-    number = 10
-    repeat = 1
+# python python/performance_collector/config_space_exporter.py --modelsource=simple --modelname=matmul --target=llvm
+# python python/performance_collector/config_space_exporter.py --modelsource=simple --modelname=matmul --target=cuda
+
+def run_autoTVM(args,mod):
+    number = 10 #
+    repeat = 1 #
     min_repeat_ms = 0  # since we're tuning on a CPU, can be set to 0
     timeout = 10  # in seconds
     # create a TVM runner
@@ -54,7 +58,7 @@ def findConfigSpace(args,mod):
         )
     tuning_option = {
         "tuner": "xgb",
-        "trials": 20,
+        "trials": 1500, # 1500,3000
         "early_stopping": 100,
         "measure_option": autotvm.measure_option(
         builder=autotvm.LocalBuilder(build_func="default"), runner=runner
@@ -62,12 +66,26 @@ def findConfigSpace(args,mod):
         "tuning_records": "/root/github/OpBench/data/Performance/"+args.modelname+"-"+args.target+"-autotvm.json",
     }
     tasks = autotvm.task.extract_from_program(mod["main"], target=args.target, params=params)
-    fName = "/root/github/OpBench/data/ConfigSpace/"+args.modelname+"-"+args.target+".json"
-    f = open(fName, "w")
-    # Tune the extracted tasks sequentially.
     for i, task in enumerate(tasks):
         prefix = "[Task %2d/%2d] " % (i + 1, len(tasks))
         tuner_obj = XGBTuner(task, loss_type="rank")
+        tuner_obj.tune(
+        n_trial=min(tuning_option["trials"], len(task.config_space)),
+        early_stopping=tuning_option["early_stopping"],
+        measure_option=tuning_option["measure_option"],
+        callbacks=[
+            autotvm.callback.progress_bar(tuning_option["trials"], prefix=prefix),
+            autotvm.callback.log_to_file(tuning_option["tuning_records"]),
+            ],
+        )
+    return
+
+def findConfigSpace(args,mod):
+    tasks = autotvm.task.extract_from_program(mod["main"], target=args.target, params=params)
+    fName = "/root/github/OpBench/data/ConfigSpace/"+args.modelname+"-"+args.target+".json"
+    f = open(fName, "w")
+    for i, task in enumerate(tasks):
+        print(task)
         f.write(task.config_space.__str__())
         # print(task.config_space)
     f.close();
@@ -103,7 +121,7 @@ if __name__ == "__main__":
     if network == 'bert' or network == 'gpt2' or network == 'roberta':
         mod, params, input_shape,inputs = model_importer.transformers_nns.get_network(network, batch_size, dtype=dtype, sequence=128)
         with tvm.transform.PassContext(opt_level=0, config={"relay.backend.use_auto_scheduler": False}):
-            findConfigSpace(args,mod)
+            findConfigSpace(args, mod)
             # lib = relay.build(mod, target=target, params=params)
             # module = graph_executor.create(lib.get_graph_json(),lib.get_lib(), device, dump_root = '/root/github/debug_dump/' + network)
             # input_ids = tvm.nd.array((np.random.uniform(size=input_shape)).astype("int64"))
@@ -115,7 +133,7 @@ if __name__ == "__main__":
             # target = tvm.target.Target("llvm -mcpu=skylake-avx512")
         mod, params, input_shape,inputs = model_importer.transformers_nns.get_network(network, batch_size, dtype=dtype, sequence=128)
         with tvm.transform.PassContext(opt_level=0, config={"relay.backend.use_auto_scheduler": False}):
-            findConfigSpace(args,mod)
+            findConfigSpace(args, mod)
             # lib = relay.build(mod, target=target, params=params)
             # module = graph_executor.create(lib.get_graph_json(),lib.get_lib(), device, dump_root = '/root/github/debug_dump/' + network)
             # input_ids = tvm.nd.array((np.random.uniform(size=input_shape)).astype("float32"))
@@ -128,7 +146,7 @@ if __name__ == "__main__":
     elif network == 'lstm' or network == 'rnn' or network == 'gru':
         mod, params, input_shape,inputs = model_importer.transformers_nns.get_network(network, batch_size, dtype=dtype, sequence=128)
         with tvm.transform.PassContext(opt_level=0, config={"relay.backend.use_auto_scheduler": False}):
-            findConfigSpace(args,mod)
+            findConfigSpace(args, mod)
             # lib = relay.build(mod, target=target, params=params)
             # module = graph_executor.create(lib.get_graph_json(),lib.get_lib(), device, dump_root = '/root/github/debug_dump/' + network)
             # for key in inputs:
@@ -138,7 +156,7 @@ if __name__ == "__main__":
     elif network == 'dpn68':
         mod, params, input_shape,inputs = model_importer.transformers_nns.get_network(network, batch_size, dtype=dtype, sequence=128)
         with tvm.transform.PassContext(opt_level=0, config={"relay.backend.use_auto_scheduler": False}):
-            findConfigSpace(args,mod)
+            findConfigSpace(args, mod)
             # lib = relay.build(mod, target=target, params=params)
             # # module = graph_executor.GraphModule(lib["default"](device))
             # module = graph_executor.create(lib.get_graph_json(),lib.get_lib(), device, dump_root = '/root/github/debug_dump/' + network)
@@ -151,7 +169,11 @@ if __name__ == "__main__":
   elif args.modelsource=="remoteonnx":
       netework, mod, params, lib, module = model_importer.onnx_nns.get_onnx_with_url(args.modelname, args.target, batch = args.batchsize, sequence = 128,  if_run = False)
       args.modelname = netework
-      findConfigSpace(args,mod)
+      findConfigSpace(args, mod)
+  elif args.modelsource=="simple":
+      mod, lib, module, params = model_importer.simple_nns.get_simple_network(args.modelname,args.target)
+      findConfigSpace(args, mod)
+      run_autoTVM(args,mod)
   else:
       print("error model source.")
 
