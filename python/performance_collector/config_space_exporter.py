@@ -8,7 +8,7 @@ import tvm
 from tvm.contrib import graph_executor
 import argparse
 import tvm.auto_scheduler as auto_scheduler
-from tvm.autotvm.tuner import XGBTuner
+from tvm.autotvm.tuner import XGBTuner, GATuner, RandomTuner, GridSearchTuner
 from tvm import autotvm
 import os
 import model_importer.local_nns 
@@ -57,9 +57,9 @@ def run_autoTVM(args,mod):
                 enable_cpu_cache_flush=True,
         )
     tuning_option = {
-        "tuner": "xgb",
+        "tuner": "gridsearch",
         "trials": 3000, # 1500,3000
-        "early_stopping": 100,
+        "early_stopping": None,
         "measure_option": autotvm.measure_option(
         builder=autotvm.LocalBuilder(build_func="default"), runner=runner
     ),
@@ -68,7 +68,7 @@ def run_autoTVM(args,mod):
     tasks = autotvm.task.extract_from_program(mod["main"], target=args.target, params=params)
     for i, task in enumerate(tasks):
         prefix = "[Task %2d/%2d] " % (i + 1, len(tasks))
-        tuner_obj = XGBTuner(task, loss_type="rank")
+        tuner_obj = GridSearchTuner(task)
         tuner_obj.tune(
         n_trial=min(tuning_option["trials"], len(task.config_space)),
         early_stopping=tuning_option["early_stopping"],
