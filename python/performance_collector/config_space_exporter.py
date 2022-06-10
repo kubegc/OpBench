@@ -16,7 +16,7 @@ import model_importer.transformers_nns
 import model_importer.onnx_nns
 import model_importer.simple_nns
 
-# python python/performance_collector/config_space_exporter.py --modelsource=local --modelname=resnet-18
+# python python/performance_collector/config_space_exporter.py --modelsource=local --modelname=resnet-18 --iftune=true
 # python python/performance_collector/config_space_exporter.py --modelsource=local --modelname=resnet-18 --target=cuda
 # python python/performance_collector/config_space_exporter.py --modelsource=local --modelname=resnet3d-18 --target=llvm
 # python python/performance_collector/config_space_exporter.py --modelsource=local --modelname=resnet3d-18 --target=cuda
@@ -97,6 +97,7 @@ if __name__ == "__main__":
   parser.add_argument('--modelname', type=str, default=None)
   parser.add_argument('--target', type=str, default="llvm")
   parser.add_argument('--batchsize', type=int, default=1)
+  parser.add_argument('--iftune', type=bool, default=False)
   args = parser.parse_args()
   if args.modelsource=="local":
     local_cnns = ["resnet-","resnet3d-","mobilenet","squeezenet_v1.1","inception_v3"]
@@ -109,6 +110,8 @@ if __name__ == "__main__":
             dev = tvm.device(str(args.target), 0)
             module = graph_executor.GraphModule(lib["default"](dev))
             findConfigSpace(args,mod)
+            if args.iftune:
+                run_autoTVM(args,mod)
     else:
         print("error local model name.")
   elif args.modelsource=="transformers":
@@ -122,6 +125,8 @@ if __name__ == "__main__":
         mod, params, input_shape,inputs = model_importer.transformers_nns.get_network(network, batch_size, dtype=dtype, sequence=128)
         with tvm.transform.PassContext(opt_level=0, config={"relay.backend.use_auto_scheduler": False}):
             findConfigSpace(args, mod)
+            if args.iftune:
+                run_autoTVM(args,mod)
             # lib = relay.build(mod, target=target, params=params)
             # module = graph_executor.create(lib.get_graph_json(),lib.get_lib(), device, dump_root = '/root/github/debug_dump/' + network)
             # input_ids = tvm.nd.array((np.random.uniform(size=input_shape)).astype("int64"))
@@ -134,6 +139,8 @@ if __name__ == "__main__":
         mod, params, input_shape,inputs = model_importer.transformers_nns.get_network(network, batch_size, dtype=dtype, sequence=128)
         with tvm.transform.PassContext(opt_level=0, config={"relay.backend.use_auto_scheduler": False}):
             findConfigSpace(args, mod)
+            if args.iftune:
+                run_autoTVM(args,mod)
             # lib = relay.build(mod, target=target, params=params)
             # module = graph_executor.create(lib.get_graph_json(),lib.get_lib(), device, dump_root = '/root/github/debug_dump/' + network)
             # input_ids = tvm.nd.array((np.random.uniform(size=input_shape)).astype("float32"))
@@ -147,6 +154,8 @@ if __name__ == "__main__":
         mod, params, input_shape,inputs = model_importer.transformers_nns.get_network(network, batch_size, dtype=dtype, sequence=128)
         with tvm.transform.PassContext(opt_level=0, config={"relay.backend.use_auto_scheduler": False}):
             findConfigSpace(args, mod)
+            if args.iftune:
+                run_autoTVM(args,mod)
             # lib = relay.build(mod, target=target, params=params)
             # module = graph_executor.create(lib.get_graph_json(),lib.get_lib(), device, dump_root = '/root/github/debug_dump/' + network)
             # for key in inputs:
@@ -157,6 +166,8 @@ if __name__ == "__main__":
         mod, params, input_shape,inputs = model_importer.transformers_nns.get_network(network, batch_size, dtype=dtype, sequence=128)
         with tvm.transform.PassContext(opt_level=0, config={"relay.backend.use_auto_scheduler": False}):
             findConfigSpace(args, mod)
+            if args.iftune:
+                run_autoTVM(args,mod)
             # lib = relay.build(mod, target=target, params=params)
             # # module = graph_executor.GraphModule(lib["default"](device))
             # module = graph_executor.create(lib.get_graph_json(),lib.get_lib(), device, dump_root = '/root/github/debug_dump/' + network)
@@ -170,10 +181,14 @@ if __name__ == "__main__":
       netework, mod, params, lib, module = model_importer.onnx_nns.get_onnx_with_url(args.modelname, args.target, batch = args.batchsize, sequence = 128,  if_run = False)
       args.modelname = netework
       findConfigSpace(args, mod)
+      if args.iftune:
+        run_autoTVM(args,mod)
   elif args.modelsource=="simple":
       mod, lib, module, params = model_importer.simple_nns.get_simple_network(args.modelname,args.target)
       findConfigSpace(args, mod)
       run_autoTVM(args,mod)
+      if args.iftune:
+        run_autoTVM(args,mod)
   else:
       print("error model source.")
 
