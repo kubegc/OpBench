@@ -15,33 +15,56 @@ import model_importer.local_nns
 import model_importer.transformers_nns
 import model_importer.onnx_nns
 import model_importer.simple_nns
+import relay_profiler.util
 
-# python python/performance_collector/config_space_exporter.py --modelsource=local --modelname=resnet-18 --iftune=true
-# python python/performance_collector/config_space_exporter.py --modelsource=local --modelname=resnet-18 --target=cuda
-# python python/performance_collector/config_space_exporter.py --modelsource=local --modelname=resnet3d-18 --target=llvm
-# python python/performance_collector/config_space_exporter.py --modelsource=local --modelname=resnet3d-18 --target=cuda
-# python python/performance_collector/config_space_exporter.py --modelsource=local --modelname=mobilenet --target=llvm
-# python python/performance_collector/config_space_exporter.py --modelsource=local --modelname=mobilenet --target=cuda
-# python python/performance_collector/config_space_exporter.py --modelsource=local --modelname=squeezenet_v1.1 --target=llvm
-# python python/performance_collector/config_space_exporter.py --modelsource=local --modelname=squeezenet_v1.1 --target=cuda
-# python python/performance_collector/config_space_exporter.py --modelsource=local --modelname=inception_v3 --target=llvm
-# python python/performance_collector/config_space_exporter.py --modelsource=local --modelname=inception_v3 --target=cuda
-# python python/performance_collector/config_space_exporter.py --modelsource=transformers --modelname=bert --target=llvm
-# python python/performance_collector/config_space_exporter.py --modelsource=transformers --modelname=bert --target=cuda
-# python python/performance_collector/config_space_exporter.py --modelsource=transformers --modelname=gpt2 --target=llvm
-# python python/performance_collector/config_space_exporter.py --modelsource=transformers --modelname=gpt2 --target=cuda
-# python python/performance_collector/config_space_exporter.py --modelsource=transformers --modelname=roberta --target=llvm
-# python python/performance_collector/config_space_exporter.py --modelsource=transformers --modelname=roberta --target=cuda
-# python python/performance_collector/config_space_exporter.py --modelsource=transformers --modelname=nasnetalarge --target=llvm
-# python python/performance_collector/config_space_exporter.py --modelsource=transformers --modelname=nasnetalarge --target=cuda
-# python python/performance_collector/config_space_exporter.py --modelsource=transformers --modelname=lstm --target=llvm
-# python python/performance_collector/config_space_exporter.py --modelsource=transformers --modelname=lstm --target=cuda
-# python python/performance_collector/config_space_exporter.py --modelsource=remoteonnx --modelname=https://github.com/onnx/models/blob/master/text/machine_comprehension/t5/model/t5-decoder-with-lm-head-12.tar.gz --target=llvm
-# python python/performance_collector/config_space_exporter.py --modelsource=remoteonnx --modelname=https://github.com/onnx/models/blob/master/text/machine_comprehension/t5/model/t5-decoder-with-lm-head-12.tar.gz --target=cuda
-# python python/performance_collector/config_space_exporter.py --modelsource=remoteonnx --modelname=https://github.com/onnx/models/blob/master/text/machine_comprehension/t5/model/t5-encoder-12.tar.gz --target=llvm
-# python python/performance_collector/config_space_exporter.py --modelsource=remoteonnx --modelname=https://github.com/onnx/models/blob/master/text/machine_comprehension/t5/model/t5-encoder-12.tar.gz --target=cuda
-# python python/performance_collector/config_space_exporter.py --modelsource=simple --modelname=matmul --target=llvm
-# python python/performance_collector/config_space_exporter.py --modelsource=simple --modelname=matmul --target=cuda
+# python python/performance_collector/op_performance_collector.py --modelsource=local --modelname=resnet-18 --ifcompare=true --target=cuda
+# python python/performance_collector/op_performance_collector.py --modelsource=local --modelname=resnet-18 --iftune=true
+# python python/performance_collector/op_performance_collector.py --modelsource=local --modelname=resnet-18 --target=cuda
+# python python/performance_collector/op_performance_collector.py --modelsource=local --modelname=resnet3d-18 --target=llvm
+# python python/performance_collector/op_performance_collector.py --modelsource=local --modelname=resnet3d-18 --target=cuda
+# python python/performance_collector/op_performance_collector.py --modelsource=local --modelname=mobilenet --target=llvm
+# python python/performance_collector/op_performance_collector.py --modelsource=local --modelname=mobilenet --target=cuda
+# python python/performance_collector/op_performance_collector.py --modelsource=local --modelname=squeezenet_v1.1 --target=llvm
+# python python/performance_collector/op_performance_collector.py --modelsource=local --modelname=squeezenet_v1.1 --target=cuda
+# python python/performance_collector/op_performance_collector.py --modelsource=local --modelname=inception_v3 --target=llvm
+# python python/performance_collector/op_performance_collector.py --modelsource=local --modelname=inception_v3 --target=cuda
+# python python/performance_collector/op_performance_collector.py --modelsource=transformers --modelname=bert --target=llvm
+# python python/performance_collector/op_performance_collector.py --modelsource=transformers --modelname=bert --target=cuda
+# python python/performance_collector/op_performance_collector.py --modelsource=transformers --modelname=gpt2 --target=llvm
+# python python/performance_collector/op_performance_collector.py --modelsource=transformers --modelname=gpt2 --target=cuda
+# python python/performance_collector/op_performance_collector.py --modelsource=transformers --modelname=roberta --target=llvm
+# python python/performance_collector/op_performance_collector.py --modelsource=transformers --modelname=roberta --target=cuda
+# python python/performance_collector/op_performance_collector.py --modelsource=transformers --modelname=nasnetalarge --target=llvm
+# python python/performance_collector/op_performance_collector.py --modelsource=transformers --modelname=nasnetalarge --target=cuda
+# python python/performance_collector/op_performance_collector.py --modelsource=transformers --modelname=lstm --target=llvm
+# python python/performance_collector/op_performance_collector.py --modelsource=transformers --modelname=lstm --target=cuda
+# python python/performance_collector/op_performance_collector.py --modelsource=remoteonnx --modelname=https://github.com/onnx/models/blob/master/text/machine_comprehension/t5/model/t5-decoder-with-lm-head-12.tar.gz --target=llvm
+# python python/performance_collector/op_performance_collector.py --modelsource=remoteonnx --modelname=https://github.com/onnx/models/blob/master/text/machine_comprehension/t5/model/t5-decoder-with-lm-head-12.tar.gz --target=cuda
+# python python/performance_collector/op_performance_collector.py --modelsource=remoteonnx --modelname=https://github.com/onnx/models/blob/master/text/machine_comprehension/t5/model/t5-encoder-12.tar.gz --target=llvm
+# python python/performance_collector/op_performance_collector.py --modelsource=remoteonnx --modelname=https://github.com/onnx/models/blob/master/text/machine_comprehension/t5/model/t5-encoder-12.tar.gz --target=cuda
+# python python/performance_collector/op_performance_collector.py --modelsource=simple --modelname=matmul --target=llvm
+# python python/performance_collector/op_performance_collector.py --modelsource=simple --modelname=matmul --target=cuda
+
+def timeit_performance(module):
+    import timeit
+    timing_number = 10
+    timing_repeat = 10
+    unoptimized = (
+        np.array(timeit.Timer(lambda: module.run()).repeat(repeat=timing_repeat, number=timing_number))
+        * 1000
+        / timing_number
+    )
+    unoptimized = {
+        "mean": np.mean(unoptimized),
+        "median": np.median(unoptimized),
+        "std": np.std(unoptimized),
+    }
+    print(unoptimized)
+    return unoptimized
+    
+
+def compare_autotvm_effect(mod, params, input_shape):
+    return
 
 def run_autoTVM(args,mod):
     number = 10 #
@@ -98,20 +121,33 @@ if __name__ == "__main__":
   parser.add_argument('--target', type=str, default="llvm")
   parser.add_argument('--batchsize', type=int, default=1)
   parser.add_argument('--iftune', type=bool, default=False)
+  parser.add_argument('--ifcompare', type=bool, default=False)
   args = parser.parse_args()
   if args.modelsource=="local":
     local_cnns = ["resnet-","resnet3d-","mobilenet","squeezenet_v1.1","inception_v3"]
     if args.modelname.startswith(local_cnns[0]) or args.modelname.startswith(local_cnns[1]) or args.modelname in local_cnns:
         mod, params, input_shape, output_shape = model_importer.local_nns.get_network(args.modelname)
         input_name = "data"
-        shape_dict = {input_name: input_shape}
         with tvm.transform.PassContext(opt_level=3):
             lib = relay.build(mod, target=args.target, params=params)
             dev = tvm.device(str(args.target), 0)
             module = graph_executor.GraphModule(lib["default"](dev))
+            data = tvm.nd.array((np.random.uniform(size=input_shape)).astype("float32"))
+            module.set_input(input_name, data)
             findConfigSpace(args,mod)
             if args.iftune:
                 run_autoTVM(args,mod)
+            if args.ifcompare:
+                timeit_performance(module)
+        if args.ifcompare:
+            with autotvm.apply_history_best("/root/github/OpBench/data/Performance/"+args.modelname+"-"+args.target+"-autotvm.json"):
+                with tvm.transform.PassContext(opt_level=3, config={}):
+                    lib = relay.build(mod, target=args.target, params=params)
+                    dev = tvm.device(str(args.target), 0)
+                    module = graph_executor.GraphModule(lib["default"](dev))
+                    data = tvm.nd.array((np.random.uniform(size=input_shape)).astype("float32"))
+                    module.set_input(input_name, data)
+                    timeit_performance(module)
     else:
         print("error local model name.")
   elif args.modelsource=="transformers":
@@ -236,29 +272,3 @@ np.random.seed(0)
 # module.run()
 # output_shape = (1, 1000)
 # tvm_output = module.get_output(0, tvm.nd.empty(output_shape)).numpy()
-
-# import timeit
-
-# timing_number = 10
-# timing_repeat = 10
-# unoptimized = (
-#     np.array(timeit.Timer(lambda: module.run()).repeat(repeat=timing_repeat, number=timing_number))
-#     * 1000
-#     / timing_number
-# )
-# unoptimized = {
-#     "mean": np.mean(unoptimized),
-#     "median": np.median(unoptimized),
-#     "std": np.std(unoptimized),
-# }
-
-# print(unoptimized)
-    # tuner_obj.tune(
-    #     n_trial=min(tuning_option["trials"], len(task.config_space)),
-    #     early_stopping=tuning_option["early_stopping"],
-    #     measure_option=tuning_option["measure_option"],
-    #     callbacks=[
-    #         autotvm.callback.progress_bar(tuning_option["trials"], prefix=prefix),
-    #         autotvm.callback.log_to_file(tuning_option["tuning_records"]),
-    #     ],
-    # )

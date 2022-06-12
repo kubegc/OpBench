@@ -11,15 +11,33 @@ pip3 install --user mxnet requests "Pillow<7"
 pip3 install torch==1.8.2+cpu torchvision==0.9.2+cpu torchaudio==0.8.2 -f https://download.pytorch.org/whl/lts/1.8/torch_lts.html
 ```
 3. install env path:
+
 ```
 source ./env_var.sh
 ```
+
+## Key entrance 
+
+```
+python/performance_collector/op_performance_collector.py 
+```
+
+With different paramters, it has certain usages:
+
+| Tag name | default | function |
+| -- | -- | -- |
+| --modelsource | None | You can specify "local","transformers", "remoteonnx", ""simple" to load different deep learning models without knowing its details |
+| --modelname | None | currently it only supports tpyical CNNs, RNNs, a few Transformers |
+| --target | llvm | currently it supports llvm and cuda. FPGA, ARM CPU,Mali GPU is under development |
+| --batchsize | 1 | currently it sets to 1, in further we will support to change it |
+| --iftune | false | true or false, weather it is to tune the DL model, currently it only support autoTVM with certain tuning settings |
+| --ifcompare | false |  true or false, it will run the DL model twice to compare weather it can optimize DL inference execution |
 ## exprot config space
 
 For example:
 ```
-python python/performance_collector/config_space_exporter.py --modelsource=local --modelname=resnet-18
-python python/performance_collector/config_space_exporter.py --modelsource=local --modelname=resnet-18 --target=cuda
+python python/performance_collector/op_performance_collector.py --modelsource=local --modelname=resnet-18
+python python/performance_collector/op_performance_collector.py --modelsource=local --modelname=resnet-18 --target=cuda
 ```
 
 # op based computation graph
