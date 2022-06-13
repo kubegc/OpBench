@@ -17,7 +17,7 @@ import model_importer.onnx_nns
 import model_importer.simple_nns
 import relay_profiler.util
 
-# python python/performance_collector/op_performance_collector.py --modelsource=local --modelname=resnet-18 --ifcompare=true --target=cuda
+# python python/performance_collector/op_performance_collector.py --modelsource=local --modelname=resnet-18 --ifcompare=true --target=cuda --tuner=grid
 # python python/performance_collector/op_performance_collector.py --modelsource=local --modelname=resnet-18 --iftune=true
 # python python/performance_collector/op_performance_collector.py --modelsource=local --modelname=resnet-18 --target=cuda
 # python python/performance_collector/op_performance_collector.py --modelsource=local --modelname=resnet3d-18 --target=llvm
@@ -45,6 +45,8 @@ import relay_profiler.util
 # python python/performance_collector/op_performance_collector.py --modelsource=simple --modelname=matmul --target=llvm
 # python python/performance_collector/op_performance_collector.py --modelsource=simple --modelname=matmul --target=cuda
 
+
+
 def timeit_performance(module):
     import timeit
     timing_number = 10
@@ -61,10 +63,6 @@ def timeit_performance(module):
     }
     print(unoptimized)
     return unoptimized
-    
-
-def compare_autotvm_effect(mod, params, input_shape):
-    return
 
 def run_autoTVM(args,mod):
     number = 10 #
@@ -77,21 +75,38 @@ def run_autoTVM(args,mod):
         repeat=repeat,
         timeout=timeout,
         min_repeat_ms=min_repeat_ms,
-                enable_cpu_cache_flush=True,
+        enable_cpu_cache_flush=True,
         )
     tuning_option = {
-        "tuner": "gridsearch",
-        "trials": 3000, # 1500,3000
+        "tuner": args.tuner,
+        "trials": args.trials, # 1500,3000
         "early_stopping": None,
         "measure_option": autotvm.measure_option(
-        builder=autotvm.LocalBuilder(build_func="default"), runner=runner
-    ),
-        "tuning_records": "/root/github/OpBench/data/Performance/"+args.modelname+"-"+args.target+"-autotvm.json",
+            builder=autotvm.LocalBuilder(build_func="default"), runner=runner
+        ),
+        "tuning_records": "/root/github/OpBench/data/Performance/"+args.modelname+ '-' + tuning_option["tuner"] +"-"+args.target+"-autotvm.json",
     }
     tasks = autotvm.task.extract_from_program(mod["main"], target=args.target, params=params)
     for i, task in enumerate(tasks):
         prefix = "[Task %2d/%2d] " % (i + 1, len(tasks))
-        tuner_obj = GridSearchTuner(task)
+         # create tuner
+        tuner = tuning_option["tuner"]
+        if tuner == "xgb" or tuner == "xgb-rank":
+            tuner_obj = XGBTuner(task, loss_type="rank")
+        elif tuner == "xgb_knob":
+            tuner_obj = XGBTuner(task, loss_type="rank", feature_type="knob")
+        elif tuner == "xgb_itervar":
+            tuner_obj = XGBTuner(task, loss_type="rank", feature_type="itervar")
+        elif tuner == "xgb_curve":
+            tuner_obj = XGBTuner(task, loss_type="rank", feature_type="curve")
+        elif tuner == "ga":
+            tuner_obj = GATuner(task, pop_size=50)
+        elif tuner == "random":
+            tuner_obj = RandomTuner(task)
+        elif tuner == "gridsearch":
+            tuner_obj = GridSearchTuner(task)
+        else:
+            raise ValueError("Invalid tuner: " + tuner)
         tuner_obj.tune(
         n_trial=min(tuning_option["trials"], len(task.config_space)),
         early_stopping=tuning_option["early_stopping"],
@@ -108,10 +123,10 @@ def findConfigSpace(args,mod):
     fName = "/root/github/OpBench/data/ConfigSpace/"+args.modelname+"-"+args.target+".json"
     f = open(fName, "w")
     for i, task in enumerate(tasks):
-        print(task)
+        # print(task)
         f.write(task.config_space.__str__())
         # print(task.config_space)
-    f.close();
+    f.close()
     return
 
 if __name__ == "__main__":
@@ -122,6 +137,8 @@ if __name__ == "__main__":
   parser.add_argument('--batchsize', type=int, default=1)
   parser.add_argument('--iftune', type=bool, default=False)
   parser.add_argument('--ifcompare', type=bool, default=False)
+  parser.add_argument('--tuner', type=str, default='xgb')
+  parser.add_argument('--trials', type=int, default=3000)
   args = parser.parse_args()
   if args.modelsource=="local":
     local_cnns = ["resnet-","resnet3d-","mobilenet","squeezenet_v1.1","inception_v3"]
@@ -140,7 +157,7 @@ if __name__ == "__main__":
             if args.ifcompare:
                 timeit_performance(module)
         if args.ifcompare:
-            with autotvm.apply_history_best("/root/github/OpBench/data/Performance/"+args.modelname+"-"+args.target+"-autotvm.json"):
+            with autotvm.apply_history_best("/root/github/OpBench/data/Performance/"+args.modelname+ '-' + args.tuner +"-"+args.target+"-autotvm.json") as best_record:
                 with tvm.transform.PassContext(opt_level=3, config={}):
                     lib = relay.build(mod, target=args.target, params=params)
                     dev = tvm.device(str(args.target), 0)
