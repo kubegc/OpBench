@@ -89,10 +89,8 @@ def tune_tasks(
                 autotvm.callback.log_to_file(tmp_log_file),
             ],
         )
-
     autotvm.record.pick_best(tmp_log_file, log_filename)
     # os.remove(tmp_log_file)
-
 
 def timeit_performance(module):
     import timeit
@@ -202,6 +200,9 @@ if __name__ == "__main__":
   parser.add_argument('--tuner', type=str, default='xgb')
   parser.add_argument('--trials', type=int, default=10)
   args = parser.parse_args()
+  autotvm.record.encode
+  autotvm.measure.MeasureInput
+  autotvm.measure.MeasureResult
   if args.modelsource == "local":
     local_cnns = ["resnet-","resnet3d-","mobilenet","squeezenet_v1.1","inception_v3"]
     if args.modelname.startswith(local_cnns[0]) or args.modelname.startswith(local_cnns[1]) or args.modelname in local_cnns:
