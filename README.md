@@ -32,6 +32,9 @@ With different paramters, it has certain usages:
 | --batchsize | 1 | currently it sets to 1, in further we will support to change it |
 | --iftune | false | true or false, weather it is to tune the DL model, currently it only support autoTVM with certain tuning settings |
 | --ifcompare | false |  true or false, it will run the DL model twice to compare weather it can optimize DL inference execution |
+| --tuner | xgb | xgb, xgb-rank, xgb_knob, xgb_itervar, xgb_curve, ga, random, gridsearch |
+| --trials | 3000 | 10-3000 |
+
 ## exprot config space
 
 For example:

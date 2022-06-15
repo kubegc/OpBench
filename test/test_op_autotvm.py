@@ -87,7 +87,7 @@ def matmul(N, L, M, dtype):
 
 N, L, M = 512, 512, 512
 task = autotvm.task.create("tutorial/matmul", args=(N, L, M, "float32"), target="llvm")
-print(task.config_space)
+# print(task.config_space)
 
 # logging config (for printing tuning log to the screen)
 logging.getLogger("autotvm").setLevel(logging.DEBUG)
@@ -107,7 +107,10 @@ tuner.tune(
 
 
 # apply history best from log file
-with autotvm.apply_history_best("matmul.log"):
+with autotvm.apply_history_best("matmul.log") as ab:
+    print(ab.best_by_model)
+    print(ab.best_by_targetkey)
+    print(ab._best_user_defined)
     with tvm.target.Target("llvm"):
         s, arg_bufs = matmul(N, L, M, "float32")
         func = tvm.build(s, arg_bufs)

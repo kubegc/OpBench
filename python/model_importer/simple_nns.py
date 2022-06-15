@@ -25,18 +25,18 @@ def get_simple_network(network, target, dshape = (1024, 1024) ):
         mod = relay.transform.InferType()(mod)
         print(mod["main"])
         dtype = "float32"
-        device = tvm.device(target, 0)
+        device = tvm.device(str(target), 0)
         model_params = {}
-        x = np.random.uniform(5,10,dshape).astype("float32")
-        y = np.random.uniform(5,10,dshape).astype("float32")
-        with tvm.transform.PassContext(opt_level=3):
-            lib = relay.build(mod, target=target, params=model_params)
-            m = graph_executor.create(lib.get_graph_json(), lib.get_lib(), device, dump_root=dump_root)
+        inputs = [np.random.uniform(5,10,dshape).astype("float32"), np.random.uniform(5,10,dshape).astype("float32")]
+        input_names = ['x','y']
+        # with tvm.transform.PassContext(opt_level=3):
+        #     lib = relay.build(mod, target=target, params=model_params)
+        #     m = graph_executor.create(lib.get_graph_json(), lib.get_lib(), device, dump_root=dump_root)
             # m.set_input('x',tvm.nd.array(x.astype(dtype)))
             # m.set_input('y',tvm.nd.array(y.astype(dtype)))
             # m.run()
             # tvm_out = m.get_output(0, tvm.nd.empty(dshape, dtype)).numpy()
-        return mod, lib, m, model_params
+        return mod, model_params, input_names, inputs
     elif network == "matmul_matmul_add":
         x = relay.var("x", shape=dshape)
         y = relay.var("y", shape=dshape)
@@ -69,7 +69,7 @@ def get_simple_network(network, target, dshape = (1024, 1024) ):
             # m.run()
             # tvm_out = m.get_output(0, tvm.nd.empty(dshape, dtype)).numpy()
             # print(tvm_out)
-        return mod, lib, m, model_params
+        return mod, lib, m, model_params, dshape
     else:
         print("error simple network name.")
         return None, None, None

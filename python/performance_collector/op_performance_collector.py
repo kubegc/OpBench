@@ -17,7 +17,7 @@ import model_importer.onnx_nns
 import model_importer.simple_nns
 import relay_profiler.util
 
-# python python/performance_collector/op_performance_collector.py --modelsource=local --modelname=resnet-18 --ifcompare=true --target=cuda --tuner=grid
+# python python/performance_collector/op_performance_collector.py --modelsource=local --modelname=resnet-18 --ifcompare=true --tuner=grid
 # python python/performance_collector/op_performance_collector.py --modelsource=local --modelname=resnet-18 --iftune=true
 # python python/performance_collector/op_performance_collector.py --modelsource=local --modelname=resnet-18 --target=cuda
 # python python/performance_collector/op_performance_collector.py --modelsource=local --modelname=resnet3d-18 --target=llvm
@@ -43,8 +43,55 @@ import relay_profiler.util
 # python python/performance_collector/op_performance_collector.py --modelsource=remoteonnx --modelname=https://github.com/onnx/models/blob/master/text/machine_comprehension/t5/model/t5-encoder-12.tar.gz --target=llvm
 # python python/performance_collector/op_performance_collector.py --modelsource=remoteonnx --modelname=https://github.com/onnx/models/blob/master/text/machine_comprehension/t5/model/t5-encoder-12.tar.gz --target=cuda
 # python python/performance_collector/op_performance_collector.py --modelsource=simple --modelname=matmul --target=llvm
-# python python/performance_collector/op_performance_collector.py --modelsource=simple --modelname=matmul --target=cuda
+# python python/performance_collector/op_performance_collector.py --modelsource=simple --modelname=matmul --target=cuda --iftune=true --tuner=grid
 
+def tune_tasks(
+    tasks,
+    measure_option,
+    tuner="xgb",
+    n_trial=10,
+    early_stopping=None,
+    log_filename="tuning.log",
+    use_transfer_learning=True,
+):
+    # create tmp log file
+    tmp_log_file = log_filename + ".tmp"
+    if os.path.exists(tmp_log_file):
+        os.remove(tmp_log_file)
+
+    for i, tsk in enumerate(reversed(tasks)):
+        prefix = "[Task %2d/%2d] " % (i + 1, len(tasks))
+
+        # create tuner
+        if tuner == "xgb" or tuner == "xgb-rank":
+            tuner_obj = XGBTuner(tsk, loss_type="rank")
+        elif tuner == "ga":
+            tuner_obj = GATuner(tsk, pop_size=100)
+        elif tuner == "random":
+            tuner_obj = RandomTuner(tsk)
+        elif tuner == "grid":
+            tuner_obj = GridSearchTuner(tsk)
+        else:
+            raise ValueError("Invalid tuner: " + tuner)
+
+        if use_transfer_learning:
+            if os.path.isfile(tmp_log_file):
+                tuner_obj.load_history(autotvm.record.load_from_file(tmp_log_file))
+
+        # do tuning
+        tsk_trial = min(n_trial, len(tsk.config_space))
+        tuner_obj.tune(
+            n_trial=tsk_trial,
+            early_stopping=early_stopping,
+            measure_option=measure_option,
+            callbacks=[
+                autotvm.callback.progress_bar(tsk_trial, prefix=prefix),
+                autotvm.callback.log_to_file(tmp_log_file),
+            ],
+        )
+
+    autotvm.record.pick_best(tmp_log_file, log_filename)
+    # os.remove(tmp_log_file)
 
 
 def timeit_performance(module):
@@ -65,62 +112,77 @@ def timeit_performance(module):
     return unoptimized
 
 def run_autoTVM(args,mod):
-    number = 10 #
-    repeat = 1 #
-    min_repeat_ms = 0  # since we're tuning on a CPU, can be set to 0
-    timeout = 10  # in seconds
-    # create a TVM runner
-    runner = autotvm.LocalRunner(
-        number=number,
-        repeat=repeat,
-        timeout=timeout,
-        min_repeat_ms=min_repeat_ms,
-        enable_cpu_cache_flush=True,
-        )
-    tuning_option = {
+    if args.target == 'llvm':
+        number = 10 #
+        repeat = 1 #
+        min_repeat_ms = 0  # since we're tuning on a CPU, can be set to 0
+        timeout = 10  # in seconds
+        # create a TVM runner
+        runner = autotvm.LocalRunner(
+            number=number,
+            repeat=repeat,
+            timeout=timeout,
+            min_repeat_ms=min_repeat_ms,
+            enable_cpu_cache_flush=True,
+            )
+        tuning_option = {
+            "tuner": args.tuner,
+            "trials": args.trials, # 1500,3000
+            "early_stopping": None,
+            "measure_option": autotvm.measure_option(
+                builder=autotvm.LocalBuilder(), runner=runner
+            ),
+            "tuning_records": "/root/github/OpBench/data/Performance/"+args.modelname+ '-' + args.tuner +"-"+str(args.target)+"-autotvm.json",
+        }
+        tasks = autotvm.task.extract_from_program(mod["main"], target=args.target, params=params)
+        for i, task in enumerate(tasks):
+            prefix = "[Task %2d/%2d] " % (i + 1, len(tasks))
+            # create tuner
+            tuner = tuning_option["tuner"]
+            if tuner == "xgb" or tuner == "xgb-rank":
+                tuner_obj = XGBTuner(task, loss_type="rank")
+            elif tuner == "xgb_knob":
+                tuner_obj = XGBTuner(task, loss_type="rank", feature_type="knob")
+            elif tuner == "xgb_itervar":
+                tuner_obj = XGBTuner(task, loss_type="rank", feature_type="itervar")
+            elif tuner == "xgb_curve":
+                tuner_obj = XGBTuner(task, loss_type="rank", feature_type="curve")
+            elif tuner == "ga":
+                tuner_obj = GATuner(task, pop_size=50)
+            elif tuner == "random":
+                tuner_obj = RandomTuner(task)
+            elif tuner == "grid":
+                tuner_obj = GridSearchTuner(task)
+            else:
+                raise ValueError("Invalid tuner: " + tuner)
+            tuner_obj.tune(
+            n_trial=min(tuning_option["trials"], len(task.config_space)),
+            early_stopping=tuning_option["early_stopping"],
+            measure_option=tuning_option["measure_option"],
+            callbacks=[
+                autotvm.callback.progress_bar(tuning_option["trials"], prefix=prefix),
+                autotvm.callback.log_to_file(tuning_option["tuning_records"]),
+                ],
+            )
+    elif args.target == 'cuda':
+        tuning_option = {
+        "log_filename": "/root/github/OpBench/data/Performance/"+args.modelname+ '-' + args.tuner +"-"+str(args.target)+"-autotvm.json",
         "tuner": args.tuner,
-        "trials": args.trials, # 1500,3000
+        "n_trial": args.trials,
         "early_stopping": None,
         "measure_option": autotvm.measure_option(
-            builder=autotvm.LocalBuilder(build_func="default"), runner=runner
-        ),
-        "tuning_records": "/root/github/OpBench/data/Performance/"+args.modelname+ '-' + tuning_option["tuner"] +"-"+args.target+"-autotvm.json",
-    }
-    tasks = autotvm.task.extract_from_program(mod["main"], target=args.target, params=params)
-    for i, task in enumerate(tasks):
-        prefix = "[Task %2d/%2d] " % (i + 1, len(tasks))
-         # create tuner
-        tuner = tuning_option["tuner"]
-        if tuner == "xgb" or tuner == "xgb-rank":
-            tuner_obj = XGBTuner(task, loss_type="rank")
-        elif tuner == "xgb_knob":
-            tuner_obj = XGBTuner(task, loss_type="rank", feature_type="knob")
-        elif tuner == "xgb_itervar":
-            tuner_obj = XGBTuner(task, loss_type="rank", feature_type="itervar")
-        elif tuner == "xgb_curve":
-            tuner_obj = XGBTuner(task, loss_type="rank", feature_type="curve")
-        elif tuner == "ga":
-            tuner_obj = GATuner(task, pop_size=50)
-        elif tuner == "random":
-            tuner_obj = RandomTuner(task)
-        elif tuner == "gridsearch":
-            tuner_obj = GridSearchTuner(task)
-        else:
-            raise ValueError("Invalid tuner: " + tuner)
-        tuner_obj.tune(
-        n_trial=min(tuning_option["trials"], len(task.config_space)),
-        early_stopping=tuning_option["early_stopping"],
-        measure_option=tuning_option["measure_option"],
-        callbacks=[
-            autotvm.callback.progress_bar(tuning_option["trials"], prefix=prefix),
-            autotvm.callback.log_to_file(tuning_option["tuning_records"]),
-            ],
-        )
-    return
+            builder=autotvm.LocalBuilder(timeout=10),
+            runner=autotvm.LocalRunner(number=20, repeat=3, timeout=4, min_repeat_ms=150),
+            ),
+        }
+        tasks = autotvm.task.extract_from_program(
+        mod["main"], target=args.target, params=params)
+        print("Tuning...")
+        tune_tasks(tasks, **tuning_option)
 
 def findConfigSpace(args,mod):
     tasks = autotvm.task.extract_from_program(mod["main"], target=args.target, params=params)
-    fName = "/root/github/OpBench/data/ConfigSpace/"+args.modelname+"-"+args.target+".json"
+    fName = "/root/github/OpBench/data/ConfigSpace/"+args.modelname+"-"+str(args.target)+".json"
     f = open(fName, "w")
     for i, task in enumerate(tasks):
         # print(task)
@@ -138,33 +200,37 @@ if __name__ == "__main__":
   parser.add_argument('--iftune', type=bool, default=False)
   parser.add_argument('--ifcompare', type=bool, default=False)
   parser.add_argument('--tuner', type=str, default='xgb')
-  parser.add_argument('--trials', type=int, default=3000)
+  parser.add_argument('--trials', type=int, default=10)
   args = parser.parse_args()
-  if args.modelsource=="local":
+  if args.modelsource == "local":
     local_cnns = ["resnet-","resnet3d-","mobilenet","squeezenet_v1.1","inception_v3"]
     if args.modelname.startswith(local_cnns[0]) or args.modelname.startswith(local_cnns[1]) or args.modelname in local_cnns:
         mod, params, input_shape, output_shape = model_importer.local_nns.get_network(args.modelname)
         input_name = "data"
-        with tvm.transform.PassContext(opt_level=3):
+        with tvm.transform.PassContext(opt_level=3, config={}):
             lib = relay.build(mod, target=args.target, params=params)
-            dev = tvm.device(str(args.target), 0)
-            module = graph_executor.GraphModule(lib["default"](dev))
-            data = tvm.nd.array((np.random.uniform(size=input_shape)).astype("float32"))
-            module.set_input(input_name, data)
-            findConfigSpace(args,mod)
-            if args.iftune:
-                run_autoTVM(args,mod)
-            if args.ifcompare:
-                timeit_performance(module)
+        dev = tvm.device(str(args.target), 0)
+        module = graph_executor.GraphModule(lib["default"](dev))
+        data = tvm.nd.array((np.random.uniform(size=input_shape)).astype("float32"))
+        module.set_input(input_name, data)
+        findConfigSpace(args,mod)
+        if args.iftune:
+            run_autoTVM(args,mod)
         if args.ifcompare:
-            with autotvm.apply_history_best("/root/github/OpBench/data/Performance/"+args.modelname+ '-' + args.tuner +"-"+args.target+"-autotvm.json") as best_record:
+            timeit_performance(module)
+            timeit_performance(module)
+            with autotvm.apply_history_best("/root/github/OpBench/data/Performance/"+args.modelname+ '-' + args.tuner +"-"+args.target+"-autotvm.json") as ab:
                 with tvm.transform.PassContext(opt_level=3, config={}):
+                    print(ab.best_by_model)
+                    print(ab.best_by_targetkey)
+                    print(ab._best_user_defined)
+                # with tvm.transform.PassContext(opt_level=3, config={}):
                     lib = relay.build(mod, target=args.target, params=params)
-                    dev = tvm.device(str(args.target), 0)
-                    module = graph_executor.GraphModule(lib["default"](dev))
-                    data = tvm.nd.array((np.random.uniform(size=input_shape)).astype("float32"))
-                    module.set_input(input_name, data)
-                    timeit_performance(module)
+            module = graph_executor.GraphModule(lib["default"](dev))
+            data1 = tvm.nd.array((np.random.uniform(size=input_shape)).astype("float32"))
+            module.set_input(input_name, data)
+            timeit_performance(module)
+            timeit_performance(module)
     else:
         print("error local model name.")
   elif args.modelsource=="transformers":
@@ -237,11 +303,32 @@ if __name__ == "__main__":
       if args.iftune:
         run_autoTVM(args,mod)
   elif args.modelsource=="simple":
-      mod, lib, module, params = model_importer.simple_nns.get_simple_network(args.modelname,args.target)
-      findConfigSpace(args, mod)
-      run_autoTVM(args,mod)
-      if args.iftune:
+    mod, params, input_names, inputs = model_importer.simple_nns.get_simple_network(args.modelname,args.target)
+    with tvm.transform.PassContext(opt_level=3):
+        lib = relay.build(mod, target=args.target, params=params)
+    dev = tvm.device(str(args.target), 0)
+    module = graph_executor.GraphModule(lib["default"](dev))
+    for i in range(len(input_names)):
+        module.set_input(input_names[i], inputs[i])
+    findConfigSpace(args,mod)
+    if args.iftune:
         run_autoTVM(args,mod)
+    if args.ifcompare:
+        # timeit_performance(module)
+        full_log = "/root/github/OpBench/data/Performance/"+args.modelname+ '-' + args.tuner +"-"+args.target+"-autotvm.json"
+        single_log = full_log+".tmp"
+        print(full_log)
+        autotvm.record.pick_best(full_log, single_log)
+        # with autotvm.apply_history_best(single_log):
+        #   with tvm.transform.PassContext(opt_level=3, config={}):
+        #     lib = relay.build(mod, target=args.target, params=params)
+        # dev = tvm.device(str(args.target), 0)
+        # module = graph_executor.GraphModule(lib["default"](dev))
+        # for i in range(len(input_names)):
+        #     module.set_input(input_names[i], inputs[i])
+        # timeit_performance(module)
+        # timeit_performance(module)
+        # timeit_performance(module)
   else:
       print("error model source.")
 
