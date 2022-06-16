@@ -16,8 +16,12 @@ import model_importer.transformers_nns
 import model_importer.onnx_nns
 import model_importer.simple_nns
 import relay_profiler.util
+import vta
+from vta.testing import simulator
+from vta.top import graph_pack
 
 # python python/performance_collector/op_performance_collector.py --modelsource=local --modelname=resnet-18 --ifcompare=true --tuner=grid
+# python python/performance_collector/op_performance_collector.py --modelsource=local --modelname=resnet-18 --ifcompare=true --tuner=xgb --iftune=true --target=cuda --trials=3000
 # python python/performance_collector/op_performance_collector.py --modelsource=local --modelname=resnet-18 --iftune=true
 # python python/performance_collector/op_performance_collector.py --modelsource=local --modelname=resnet-18 --target=cuda
 # python python/performance_collector/op_performance_collector.py --modelsource=local --modelname=resnet3d-18 --target=llvm
