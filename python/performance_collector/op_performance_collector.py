@@ -9,7 +9,7 @@ from tvm.contrib import graph_executor
 import argparse
 import tvm.auto_scheduler as auto_scheduler
 from tvm.autotvm.tuner import XGBTuner, GATuner, RandomTuner, GridSearchTuner
-from tvm import autotvm
+from tvm import rpc, autotvm, relay, te, topi
 import os
 import model_importer.local_nns 
 import model_importer.transformers_nns
@@ -19,6 +19,7 @@ import relay_profiler.util
 import vta
 from vta.testing import simulator
 from vta.top import graph_pack
+from tvm.autotvm.task import TaskExtractEnv
 
 # python python/performance_collector/op_performance_collector.py --modelsource=local --modelname=resnet-18 --ifcompare=true --tuner=grid
 # python python/performance_collector/op_performance_collector.py --modelsource=local --modelname=resnet-18 --ifcompare=true --tuner=xgb --iftune=true --target=cuda --trials=3000
@@ -137,35 +138,6 @@ def run_autoTVM(args,mod):
             "tuning_records": "/root/github/OpBench/data/Performance/"+args.modelname+ '-' + args.tuner +"-"+str(args.target)+"-autotvm.json",
         }
         tasks = autotvm.task.extract_from_program(mod["main"], target=args.target, params=params)
-        for i, task in enumerate(tasks):
-            prefix = "[Task %2d/%2d] " % (i + 1, len(tasks))
-            # create tuner
-            tuner = tuning_option["tuner"]
-            if tuner == "xgb" or tuner == "xgb-rank":
-                tuner_obj = XGBTuner(task, loss_type="rank")
-            elif tuner == "xgb_knob":
-                tuner_obj = XGBTuner(task, loss_type="rank", feature_type="knob")
-            elif tuner == "xgb_itervar":
-                tuner_obj = XGBTuner(task, loss_type="rank", feature_type="itervar")
-            elif tuner == "xgb_curve":
-                tuner_obj = XGBTuner(task, loss_type="rank", feature_type="curve")
-            elif tuner == "ga":
-                tuner_obj = GATuner(task, pop_size=50)
-            elif tuner == "random":
-                tuner_obj = RandomTuner(task)
-            elif tuner == "grid":
-                tuner_obj = GridSearchTuner(task)
-            else:
-                raise ValueError("Invalid tuner: " + tuner)
-            tuner_obj.tune(
-            n_trial=min(tuning_option["trials"], len(task.config_space)),
-            early_stopping=tuning_option["early_stopping"],
-            measure_option=tuning_option["measure_option"],
-            callbacks=[
-                autotvm.callback.progress_bar(tuning_option["trials"], prefix=prefix),
-                autotvm.callback.log_to_file(tuning_option["tuning_records"]),
-                ],
-            )
     elif args.target == 'cuda':
         tuning_option = {
         "log_filename": "/root/github/OpBench/data/Performance/"+args.modelname+ '-' + args.tuner +"-"+str(args.target)+"-autotvm.json",
@@ -180,7 +152,41 @@ def run_autoTVM(args,mod):
         tasks = autotvm.task.extract_from_program(
         mod["main"], target=args.target, params=params)
         print("Tuning...")
-        tune_tasks(tasks, **tuning_option)
+    elif args.target == 'vta':
+        tracker_host = os.environ.get("TVM_TRACKER_HOST", args.host)
+        tracker_port = int(os.environ.get("TVM_TRACKER_PORT", args.port))
+        # Load VTA parameters from the 3rdparty/vta-hw/config/vta_config.json file
+        env = vta.get_env()
+        device = "vta"
+        target = env.target if device == "vta" else env.target_vta_cpu
+
+        tuning_option = {
+            "log_filename": "/root/github/OpBench/data/Performance/"+args.modelname+ '-' + args.tuner +"-"+str(args.target)+"-autotvm.json",
+            "tuner": args.tuner,
+            "n_trial": args.trials,
+            "early_stopping": None,
+            "measure_option": autotvm.measure_option(
+                builder=autotvm.LocalBuilder(),
+                runner=autotvm.RPCRunner(
+                    env.TARGET,
+                    host=tracker_host,
+                    port=tracker_port,
+                    number=5,
+                    timeout=60,
+                    module_loader=vta.module_loader(),
+                    # check_correctness=True, # TODO: re-enable when check_correctness works again.
+                ),
+            ),
+        }
+
+        tasks = autotvm.task.extract_from_program(
+            mod,
+            params=params,
+            ops=(relay.op.get("nn.conv2d"),),
+            target=target,
+            target_host=env.target_host,
+        )
+    tune_tasks(tasks, **tuning_option)
 
 def findConfigSpace(args,mod):
     tasks = autotvm.task.extract_from_program(mod["main"], target=args.target, params=params)
@@ -193,6 +199,86 @@ def findConfigSpace(args,mod):
     f.close()
     return
 
+def extra_compile(args, mod):
+    if args.traget == 'vta':
+        TaskExtractEnv()
+        vta_json_env = vta.get_env()
+        start_pack = "nn.max_pool2d"
+        stop_pack = "nn.global_avg_pool2d"
+        assert vta_json_env.BLOCK_IN == vta_json_env.BLOCK_OUT
+        relay_prog = graph_pack(
+            mod["main"],
+            vta_json_env.BATCH,
+            vta_json_env.BLOCK_OUT,
+            vta_json_env.WGT_WIDTH,
+            start_name=start_pack,
+            stop_name=stop_pack,
+        )
+        return relay_prog
+    return mod
+
+def register_vta_tuning_tasks():
+    from tvm.autotvm.task import TaskExtractEnv
+
+    @tvm.te.tag_scope(tag=topi.tag.ELEMWISE)
+    def my_clip(x, a_min, a_max):
+        """Unlike topi's current clip, put min and max into two stages."""
+        const_min = tvm.tir.const(a_min, x.dtype)
+        const_max = tvm.tir.const(a_max, x.dtype)
+        x = te.compute(x.shape, lambda *i: tvm.te.min(x(*i), const_max), name="clipA")
+        x = te.compute(x.shape, lambda *i: tvm.te.max(x(*i), const_min), name="clipB")
+        return x
+
+    # init autotvm env to register VTA operator
+    TaskExtractEnv()
+
+    @autotvm.template("conv2d_packed.vta")
+    def _topi_nn_conv2d(*args, **kwargs):
+        assert not kwargs, "Do not support kwargs in template function call"
+        A, W = args[:2]
+
+        with tvm.target.vta():
+            res = vta.top.conv2d_packed(*args, **kwargs)
+            res = topi.right_shift(res, 8)
+            res = my_clip(res, 0, 127)
+            res = topi.cast(res, "int8")
+
+        if tvm.target.Target.current().device_name == "vta":
+            s = vta.top.schedule_conv2d_packed([res])
+        else:
+            s = te.create_schedule([res.op])
+        return s, [A, W, res]
+
+def get_lib_module_dev(args, mod, params):
+    if args.host is None or args.port is None:
+        with tvm.transform.PassContext(opt_level=3, config={}):
+            lib = relay.build(mod, target=args.target, params=params)
+        dev = tvm.device(str(args.target), 0)
+        module = graph_executor.GraphModule(lib["default"](dev))
+    else:
+        if args.target != "sim":
+            # Get remote from fleet node
+            remote = autotvm.measure.request_remote(
+                args.target, args.host, args.port, timeout=10000
+            )
+            # Reconfigure the JIT runtime and FPGA.
+            vta.reconfig_runtime(remote)
+            vta.program_fpga(remote, bitstream=None)
+        else:
+            # In simulation mode, host the RPC server locally.
+            remote = rpc.LocalSession()
+        if args.target != "vta":
+            with tvm.transform.PassContext(opt_level=3, disabled_pass={"AlterOpLayout"}):
+                lib = relay.build(
+                    mod, target=args.target, params=params, target_host=args.host)
+        else:
+            with vta.build_config(opt_level=3, disabled_pass={"AlterOpLayout"}):
+                lib = relay.build(
+                    mod, target=args.target, params=params, target_host=args.host)
+        dev = remote.ext_dev(0) if args.device == "vta" else remote.cpu(0)
+        module = graph_executor.GraphModule(lib["default"](dev))
+    return lib, module, dev
+
 if __name__ == "__main__":
   parser = argparse.ArgumentParser()
   parser.add_argument('--modelsource', type=str, default = None)
@@ -203,6 +289,8 @@ if __name__ == "__main__":
   parser.add_argument('--ifcompare', type=bool, default=False)
   parser.add_argument('--tuner', type=str, default='xgb')
   parser.add_argument('--trials', type=int, default=10)
+  parser.add_argument('--host', type=str, default=None)
+  parser.add_argument('--port', type=str, default=None)
   args = parser.parse_args()
   autotvm.record.encode
   autotvm.measure.MeasureInput
@@ -211,12 +299,10 @@ if __name__ == "__main__":
     local_cnns = ["resnet-","resnet3d-","mobilenet","squeezenet_v1.1","inception_v3"]
     if args.modelname.startswith(local_cnns[0]) or args.modelname.startswith(local_cnns[1]) or args.modelname in local_cnns:
         mod, params, input_shape, output_shape = model_importer.local_nns.get_network(args.modelname)
+        mod = tvm.IRModule.from_expr(extra_compile(args, mod))
         input_name = "data"
-        with tvm.transform.PassContext(opt_level=3, config={}):
-            lib = relay.build(mod, target=args.target, params=params)
-        dev = tvm.device(str(args.target), 0)
-        module = graph_executor.GraphModule(lib["default"](dev))
         data = tvm.nd.array((np.random.uniform(size=input_shape)).astype("float32"))
+        lib, module, dev = get_lib_module_dev(args, mod, params)
         module.set_input(input_name, data)
         findConfigSpace(args,mod)
         if args.iftune:
