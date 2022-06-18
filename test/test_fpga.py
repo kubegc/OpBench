@@ -58,7 +58,7 @@ if env.TARGET not in ["sim", "tsim", "intelfocl"]:
     # Otherwise if you have a device you want to program directly from
     # the host, make sure you've set the variables below to the IP of
     # your board.
-    device_host = os.environ.get("VTA_RPC_HOST", "133.133.135.19")
+    device_host = os.environ.get("VTA_RPC_HOST", "133.133.135.18")
     device_port = os.environ.get("VTA_RPC_PORT", "9091")
     if not tracker_host or not tracker_port:
         print("remote")

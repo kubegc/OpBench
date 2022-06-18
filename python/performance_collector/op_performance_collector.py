@@ -23,6 +23,7 @@ from tvm.autotvm.task import TaskExtractEnv
 
 # python python/performance_collector/op_performance_collector.py --modelsource=local --modelname=resnet-18 --ifcompare=true --tuner=grid
 # python python/performance_collector/op_performance_collector.py --modelsource=local --modelname=resnet-18 --ifcompare=true --tuner=xgb --iftune=true --target=cuda --trials=3000
+# python python/performance_collector/op_performance_collector.py --modelsource=local --modelname=resnet-18 --ifcompare=true --tuner=xgb --iftune=true --target=pynq --trials=1500 --host=133.133.135.39 --port=9191
 # python python/performance_collector/op_performance_collector.py --modelsource=local --modelname=resnet-18 --iftune=true
 # python python/performance_collector/op_performance_collector.py --modelsource=local --modelname=resnet-18 --target=cuda
 # python python/performance_collector/op_performance_collector.py --modelsource=local --modelname=resnet3d-18 --target=llvm
@@ -152,7 +153,7 @@ def run_autoTVM(args,mod):
         tasks = autotvm.task.extract_from_program(
         mod["main"], target=args.target, params=params)
         print("Tuning...")
-    elif args.target == 'vta':
+    elif args.target == 'pynq':
         tracker_host = os.environ.get("TVM_TRACKER_HOST", args.host)
         tracker_port = int(os.environ.get("TVM_TRACKER_PORT", args.port))
         # Load VTA parameters from the 3rdparty/vta-hw/config/vta_config.json file
@@ -199,12 +200,18 @@ def findConfigSpace(args,mod):
     f.close()
     return
 
-def extra_compile(args, mod):
-    if args.traget == 'vta':
+def extra_compile(args, mod, params):
+    if args.target == 'pynq':
+        with tvm.transform.PassContext(opt_level=3):
+            with relay.quantize.qconfig(global_scale=8.0, skip_conv_layers=[0]):
+                mod = relay.quantize.quantize(mod, params=params)
         TaskExtractEnv()
         vta_json_env = vta.get_env()
         start_pack = "nn.max_pool2d"
         stop_pack = "nn.global_avg_pool2d"
+        # print(mod["main"])
+        # print(vta_json_env.TARGET)
+        # print(vta_json_env.target)
         assert vta_json_env.BLOCK_IN == vta_json_env.BLOCK_OUT
         relay_prog = graph_pack(
             mod["main"],
@@ -214,7 +221,7 @@ def extra_compile(args, mod):
             start_name=start_pack,
             stop_name=stop_pack,
         )
-        return relay_prog
+        return tvm.IRModule.from_expr(relay_prog)
     return mod
 
 def register_vta_tuning_tasks():
@@ -250,16 +257,23 @@ def register_vta_tuning_tasks():
         return s, [A, W, res]
 
 def get_lib_module_dev(args, mod, params):
+    env = vta.get_env()
+    device = "vta"
+    target = env.target if device == "vta" else env.target_vta_cpu
+    print(env.target_host)
+    print(env.TARGET)
+    print(target)
     if args.host is None or args.port is None:
         with tvm.transform.PassContext(opt_level=3, config={}):
             lib = relay.build(mod, target=args.target, params=params)
         dev = tvm.device(str(args.target), 0)
         module = graph_executor.GraphModule(lib["default"](dev))
     else:
-        if args.target != "sim":
+        if env.TARGET != "sim":
+            print("get remote")
             # Get remote from fleet node
             remote = autotvm.measure.request_remote(
-                args.target, args.host, args.port, timeout=10000
+                env.TARGET, args.host, args.port, timeout=10000
             )
             # Reconfigure the JIT runtime and FPGA.
             vta.reconfig_runtime(remote)
@@ -267,15 +281,16 @@ def get_lib_module_dev(args, mod, params):
         else:
             # In simulation mode, host the RPC server locally.
             remote = rpc.LocalSession()
-        if args.target != "vta":
+        if target.device_name != "vta":
             with tvm.transform.PassContext(opt_level=3, disabled_pass={"AlterOpLayout"}):
                 lib = relay.build(
-                    mod, target=args.target, params=params, target_host=args.host)
+                    mod, target=target, params=params, target_host=env.target_host)
         else:
+            print("get mod lib")
             with vta.build_config(opt_level=3, disabled_pass={"AlterOpLayout"}):
                 lib = relay.build(
-                    mod, target=args.target, params=params, target_host=args.host)
-        dev = remote.ext_dev(0) if args.device == "vta" else remote.cpu(0)
+                    mod, target=target, params=params, target_host=env.target_host)
+        dev = remote.ext_dev(0) if device == "vta" else remote.cpu(0)
         module = graph_executor.GraphModule(lib["default"](dev))
     return lib, module, dev
 
@@ -290,7 +305,7 @@ if __name__ == "__main__":
   parser.add_argument('--tuner', type=str, default='xgb')
   parser.add_argument('--trials', type=int, default=10)
   parser.add_argument('--host', type=str, default=None)
-  parser.add_argument('--port', type=str, default=None)
+  parser.add_argument('--port', type=int, default=None)
   args = parser.parse_args()
   autotvm.record.encode
   autotvm.measure.MeasureInput
@@ -299,7 +314,7 @@ if __name__ == "__main__":
     local_cnns = ["resnet-","resnet3d-","mobilenet","squeezenet_v1.1","inception_v3"]
     if args.modelname.startswith(local_cnns[0]) or args.modelname.startswith(local_cnns[1]) or args.modelname in local_cnns:
         mod, params, input_shape, output_shape = model_importer.local_nns.get_network(args.modelname)
-        mod = tvm.IRModule.from_expr(extra_compile(args, mod))
+        mod = extra_compile(args, mod, params)
         input_name = "data"
         data = tvm.nd.array((np.random.uniform(size=input_shape)).astype("float32"))
         lib, module, dev = get_lib_module_dev(args, mod, params)
@@ -308,20 +323,21 @@ if __name__ == "__main__":
         if args.iftune:
             run_autoTVM(args,mod)
         if args.ifcompare:
-            timeit_performance(module)
-            timeit_performance(module)
-            with autotvm.apply_history_best("/root/github/OpBench/data/Performance/"+args.modelname+ '-' + args.tuner +"-"+args.target+"-autotvm.json") as ab:
-                with tvm.transform.PassContext(opt_level=3, config={}):
-                    print(ab.best_by_model)
-                    print(ab.best_by_targetkey)
-                    print(ab._best_user_defined)
-                # with tvm.transform.PassContext(opt_level=3, config={}):
-                    lib = relay.build(mod, target=args.target, params=params)
-            module = graph_executor.GraphModule(lib["default"](dev))
-            data1 = tvm.nd.array((np.random.uniform(size=input_shape)).astype("float32"))
-            module.set_input(input_name, data)
-            timeit_performance(module)
-            timeit_performance(module)
+            print("compare")
+            # timeit_performance(module)
+            # timeit_performance(module)
+            # with autotvm.apply_history_best("/root/github/OpBench/data/Performance/"+args.modelname+ '-' + args.tuner +"-"+args.target+"-autotvm.json") as ab:
+            #     with tvm.transform.PassContext(opt_level=3, config={}):
+            #         print(ab.best_by_model)
+            #         print(ab.best_by_targetkey)
+            #         print(ab._best_user_defined)
+            #     # with tvm.transform.PassContext(opt_level=3, config={}):
+            #         lib = relay.build(mod, target=args.target, params=params)
+            # module = graph_executor.GraphModule(lib["default"](dev))
+            # data1 = tvm.nd.array((np.random.uniform(size=input_shape)).astype("float32"))
+            # module.set_input(input_name, data)
+            # timeit_performance(module)
+            # timeit_performance(module)
     else:
         print("error local model name.")
   elif args.modelsource=="transformers":
