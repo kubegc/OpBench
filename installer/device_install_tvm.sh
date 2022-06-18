@@ -17,5 +17,9 @@ make clean; make runtime vta -j2
 echo " wait 4 time, total 4 times"
 make clean; make runtime vta -j2
 
+export TVM_HOME=/home/xilinx/as-tvm
+export PYTHONPATH=$TVM_HOME/python:$TVM_HOME/vta/python:${PYTHONPATH}
+export VTA_HW_PATH=$TVM_HOME/3rdparty/vta-hw
+
 cd ..
 sudo ./apps/vta_rpc/start_rpc_server.sh

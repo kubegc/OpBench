@@ -7,6 +7,9 @@ import tvm.relay.testing
 # from tvm.contrib import graph_executor
 from tvm.contrib.debugger import debug_executor as graph_executor
 import python.model_importer.neworkx_visualizer as neworkx_visualizer
+from vta.top import graph_pack
+from mxnet.gluon.model_zoo import vision
+import numpy as np
 
 os.environ['TVM_BACKTRACE']="1"
 
@@ -23,6 +26,49 @@ class FastSoftmaxMutator(tvm.relay.ExprMutator):
 @tvm.relay.transform.function_pass(opt_level=1)
 def FastSoftmax(fn, mod, device):
     return FastSoftmaxMutator().visit(fn)
+
+def compile_network(env, target, model, start_pack, stop_pack):
+    
+    pack_dict = {
+    "resnet18_v1": ["nn.max_pool2d", "nn.global_avg_pool2d"],
+    "resnet34_v1": ["nn.max_pool2d", "nn.global_avg_pool2d"],
+    "resnet18_v2": ["nn.max_pool2d", "nn.global_avg_pool2d"],
+    "resnet34_v2": ["nn.max_pool2d", "nn.global_avg_pool2d"],
+    "resnet50_v2": ["nn.max_pool2d", "nn.global_avg_pool2d"],
+    "resnet101_v2": ["nn.max_pool2d", "nn.global_avg_pool2d"],
+    }
+    assert model in pack_dict
+    # Populate the shape and data type dictionary
+    dtype_dict = {"data": "float32"}
+    shape_dict = {"data": (env.BATCH, 3, 224, 224)}
+
+    # Get off the shelf gluon model, and convert to relay
+    gluon_model = vision.get_model(model, pretrained=True)
+    mod, params = relay.frontend.from_mxnet(gluon_model, shape_dict)
+
+    # Update shape and type dictionary
+    shape_dict.update({k: v.shape for k, v in params.items()})
+    dtype_dict.update({k: str(v.dtype) for k, v in params.items()})
+
+    # Perform quantization in Relay
+    # Note: We set opt_level to 3 in order to fold batch norm
+    with tvm.transform.PassContext(opt_level=3):
+        with relay.quantize.qconfig(global_scale=8.0, skip_conv_layers=[0]):
+            mod = relay.quantize.quantize(mod, params=params)
+
+    # Perform graph packing and constant folding for VTA target
+    if target.device_name == "vta":
+        assert env.BLOCK_IN == env.BLOCK_OUT
+        relay_prog = graph_pack(
+            mod["main"],
+            env.BATCH,
+            env.BLOCK_OUT,
+            env.WGT_WIDTH,
+            start_name=start_pack,
+            stop_name=stop_pack,
+        )
+        return tvm.IRModule.from_expr(relay_prog), params
+    return mod, params, dtype_dict, shape_dict
 
 def get_network(name, batch_size = 1, layout="NCHW", dtype="float32", sequence = 128, hidden_size = 768, num_hidden_layers = 12, num_attention_heads = 12, intermediate_size = 3072, max_position_embeddings = 512):
     """Get the symbol definition and random weight of a network"""

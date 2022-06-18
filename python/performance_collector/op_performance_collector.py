@@ -5,7 +5,7 @@ from PIL import Image
 import numpy as np
 import tvm.relay as relay
 import tvm
-from tvm.contrib import graph_executor
+from tvm.contrib import graph_executor, utils, download
 import argparse
 import tvm.auto_scheduler as auto_scheduler
 from tvm.autotvm.tuner import XGBTuner, GATuner, RandomTuner, GridSearchTuner
@@ -167,13 +167,13 @@ def run_autoTVM(args,mod):
             "n_trial": args.trials,
             "early_stopping": None,
             "measure_option": autotvm.measure_option(
-                builder=autotvm.LocalBuilder(),
+                builder=autotvm.LocalBuilder(timeout=100),
                 runner=autotvm.RPCRunner(
                     env.TARGET,
                     host=tracker_host,
                     port=tracker_port,
                     number=5,
-                    timeout=60,
+                    timeout=6000,
                     module_loader=vta.module_loader(),
                     # check_correctness=True, # TODO: re-enable when check_correctness works again.
                 ),
@@ -187,10 +187,10 @@ def run_autoTVM(args,mod):
             target=target,
             target_host=env.target_host,
         )
+    findConfigSpace(tasks)
     tune_tasks(tasks, **tuning_option)
 
-def findConfigSpace(args,mod):
-    tasks = autotvm.task.extract_from_program(mod["main"], target=args.target, params=params)
+def findConfigSpace(tasks):
     fName = "/root/github/OpBench/data/ConfigSpace/"+args.modelname+"-"+str(args.target)+".json"
     f = open(fName, "w")
     for i, task in enumerate(tasks):
@@ -257,18 +257,20 @@ def register_vta_tuning_tasks():
         return s, [A, W, res]
 
 def get_lib_module_dev(args, mod, params):
-    env = vta.get_env()
-    device = "vta"
-    target = env.target if device == "vta" else env.target_vta_cpu
-    print(env.target_host)
-    print(env.TARGET)
-    print(target)
+    target = args.target
     if args.host is None or args.port is None:
         with tvm.transform.PassContext(opt_level=3, config={}):
             lib = relay.build(mod, target=args.target, params=params)
         dev = tvm.device(str(args.target), 0)
         module = graph_executor.GraphModule(lib["default"](dev))
     else:
+        env = vta.get_env()
+        device = "vta"
+        target = env.target if device == "vta" else env.target_vta_cpu
+        print(env.target_host)
+        print(env.TARGET)
+        print(target)
+        print("get mod lib")
         if env.TARGET != "sim":
             print("get remote")
             # Get remote from fleet node
@@ -286,13 +288,18 @@ def get_lib_module_dev(args, mod, params):
                 lib = relay.build(
                     mod, target=target, params=params, target_host=env.target_host)
         else:
-            print("get mod lib")
             with vta.build_config(opt_level=3, disabled_pass={"AlterOpLayout"}):
                 lib = relay.build(
                     mod, target=target, params=params, target_host=env.target_host)
+        # Export library
+        print("Upload...")
+        temp = utils.tempdir()
+        lib.export_library(temp.relpath("graphlib.tar"))
+        remote.upload(temp.relpath("graphlib.tar"))
+        lib = remote.load_module("graphlib.tar")
         dev = remote.ext_dev(0) if device == "vta" else remote.cpu(0)
         module = graph_executor.GraphModule(lib["default"](dev))
-    return lib, module, dev
+    return lib, module, target, dev
 
 if __name__ == "__main__":
   parser = argparse.ArgumentParser()
@@ -310,16 +317,22 @@ if __name__ == "__main__":
   autotvm.record.encode
   autotvm.measure.MeasureInput
   autotvm.measure.MeasureResult
-  if args.modelsource == "local":
+  if args.target == 'pynq':
+    register_vta_tuning_tasks()
+    env = vta.get_env()
+    device = "vta"
+    target = env.target if device == "vta" else env.target_vta_cpu
+  if args.modelsource == 'mxnet':
+    mod, params, dtype_dict, shape_dict= model_importer.local_nns.compile_network(env, target, args.modelname, "nn.max_pool2d", "nn.global_avg_pool2d")
+  if args.modelsource == "local" :
     local_cnns = ["resnet-","resnet3d-","mobilenet","squeezenet_v1.1","inception_v3"]
     if args.modelname.startswith(local_cnns[0]) or args.modelname.startswith(local_cnns[1]) or args.modelname in local_cnns:
         mod, params, input_shape, output_shape = model_importer.local_nns.get_network(args.modelname)
         mod = extra_compile(args, mod, params)
-        input_name = "data"
-        data = tvm.nd.array((np.random.uniform(size=input_shape)).astype("float32"))
-        lib, module, dev = get_lib_module_dev(args, mod, params)
-        module.set_input(input_name, data)
-        findConfigSpace(args,mod)
+        # input_name = "data"
+        # data = tvm.nd.array((np.random.uniform(size=input_shape)).astype("float32"))
+        # lib, module, target, dev = get_lib_module_dev(args, mod, params)
+        # module.set_input(input_name, data)
         if args.iftune:
             run_autoTVM(args,mod)
         if args.ifcompare:
@@ -350,7 +363,6 @@ if __name__ == "__main__":
     if network == 'bert' or network == 'gpt2' or network == 'roberta':
         mod, params, input_shape,inputs = model_importer.transformers_nns.get_network(network, batch_size, dtype=dtype, sequence=128)
         with tvm.transform.PassContext(opt_level=0, config={"relay.backend.use_auto_scheduler": False}):
-            findConfigSpace(args, mod)
             if args.iftune:
                 run_autoTVM(args,mod)
             # lib = relay.build(mod, target=target, params=params)
@@ -364,7 +376,6 @@ if __name__ == "__main__":
             # target = tvm.target.Target("llvm -mcpu=skylake-avx512")
         mod, params, input_shape,inputs = model_importer.transformers_nns.get_network(network, batch_size, dtype=dtype, sequence=128)
         with tvm.transform.PassContext(opt_level=0, config={"relay.backend.use_auto_scheduler": False}):
-            findConfigSpace(args, mod)
             if args.iftune:
                 run_autoTVM(args,mod)
             # lib = relay.build(mod, target=target, params=params)
@@ -379,7 +390,6 @@ if __name__ == "__main__":
     elif network == 'lstm' or network == 'rnn' or network == 'gru':
         mod, params, input_shape,inputs = model_importer.transformers_nns.get_network(network, batch_size, dtype=dtype, sequence=128)
         with tvm.transform.PassContext(opt_level=0, config={"relay.backend.use_auto_scheduler": False}):
-            findConfigSpace(args, mod)
             if args.iftune:
                 run_autoTVM(args,mod)
             # lib = relay.build(mod, target=target, params=params)
@@ -391,7 +401,6 @@ if __name__ == "__main__":
     elif network == 'dpn68':
         mod, params, input_shape,inputs = model_importer.transformers_nns.get_network(network, batch_size, dtype=dtype, sequence=128)
         with tvm.transform.PassContext(opt_level=0, config={"relay.backend.use_auto_scheduler": False}):
-            findConfigSpace(args, mod)
             if args.iftune:
                 run_autoTVM(args,mod)
             # lib = relay.build(mod, target=target, params=params)
@@ -406,7 +415,6 @@ if __name__ == "__main__":
   elif args.modelsource=="remoteonnx":
       netework, mod, params, lib, module = model_importer.onnx_nns.get_onnx_with_url(args.modelname, args.target, batch = args.batchsize, sequence = 128,  if_run = False)
       args.modelname = netework
-      findConfigSpace(args, mod)
       if args.iftune:
         run_autoTVM(args,mod)
   elif args.modelsource=="simple":
@@ -417,7 +425,6 @@ if __name__ == "__main__":
     module = graph_executor.GraphModule(lib["default"](dev))
     for i in range(len(input_names)):
         module.set_input(input_names[i], inputs[i])
-    findConfigSpace(args,mod)
     if args.iftune:
         run_autoTVM(args,mod)
     if args.ifcompare:

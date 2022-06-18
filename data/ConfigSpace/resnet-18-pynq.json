@@ -1,0 +1,101 @@
+ConfigSpace (len=112000, space_map=
+   0 tile_co: Split(policy=factors, product=64, num_outputs=2) len=7
+   1 tile_oh: Split(policy=factors, product=112, num_outputs=2) len=10
+   2 tile_ow: Split(policy=factors, product=112, num_outputs=2) len=10
+   3 reorder_0: Reorder(policy=candidate) len=2
+   4 ann_reduce: Annotate(policy=try_unroll) len=4
+   5 ann_spatial: Annotate(policy=try_unroll_vec) len=20
+)ConfigSpace (len=308, space_map=
+   0 tile_ic: Split(policy=factors, product=3, num_outputs=2) len=2
+   1 tile_oc: Split(policy=factors, product=64, num_outputs=2) len=7
+   2 tile_ow: Split(policy=verbose, product=112, num_outputs=2) len=11
+   3 unroll_kw: OtherOption([True, False]) len=2
+)ConfigSpace (len=2304, space_map=
+   0 tile_b: Split(policy=factors, product=1, num_outputs=2) len=1
+   1 tile_h: Split(policy=factors, product=56, num_outputs=2) len=8
+   2 tile_w: Split(policy=factors, product=56, num_outputs=2) len=8
+   3 tile_ci: Split(policy=factors, product=4, num_outputs=2) len=3
+   4 tile_co: Split(policy=factors, product=4, num_outputs=2) len=3
+   5 oc_nthread: OtherOption([1, 2]) len=2
+   6 h_nthread: OtherOption([1, 2]) len=2
+)ConfigSpace (len=2304, space_map=
+   0 tile_b: Split(policy=factors, product=1, num_outputs=2) len=1
+   1 tile_h: Split(policy=factors, product=56, num_outputs=2) len=8
+   2 tile_w: Split(policy=factors, product=56, num_outputs=2) len=8
+   3 tile_ci: Split(policy=factors, product=4, num_outputs=2) len=3
+   4 tile_co: Split(policy=factors, product=4, num_outputs=2) len=3
+   5 oc_nthread: OtherOption([1, 2]) len=2
+   6 h_nthread: OtherOption([1, 2]) len=2
+)ConfigSpace (len=1728, space_map=
+   0 tile_b: Split(policy=factors, product=1, num_outputs=2) len=1
+   1 tile_h: Split(policy=factors, product=28, num_outputs=2) len=6
+   2 tile_w: Split(policy=factors, product=28, num_outputs=2) len=6
+   3 tile_ci: Split(policy=factors, product=4, num_outputs=2) len=3
+   4 tile_co: Split(policy=factors, product=8, num_outputs=2) len=4
+   5 oc_nthread: OtherOption([1, 2]) len=2
+   6 h_nthread: OtherOption([1, 2]) len=2
+)ConfigSpace (len=2304, space_map=
+   0 tile_b: Split(policy=factors, product=1, num_outputs=2) len=1
+   1 tile_h: Split(policy=factors, product=28, num_outputs=2) len=6
+   2 tile_w: Split(policy=factors, product=28, num_outputs=2) len=6
+   3 tile_ci: Split(policy=factors, product=8, num_outputs=2) len=4
+   4 tile_co: Split(policy=factors, product=8, num_outputs=2) len=4
+   5 oc_nthread: OtherOption([1, 2]) len=2
+   6 h_nthread: OtherOption([1, 2]) len=2
+)ConfigSpace (len=1728, space_map=
+   0 tile_b: Split(policy=factors, product=1, num_outputs=2) len=1
+   1 tile_h: Split(policy=factors, product=28, num_outputs=2) len=6
+   2 tile_w: Split(policy=factors, product=28, num_outputs=2) len=6
+   3 tile_ci: Split(policy=factors, product=4, num_outputs=2) len=3
+   4 tile_co: Split(policy=factors, product=8, num_outputs=2) len=4
+   5 oc_nthread: OtherOption([1, 2]) len=2
+   6 h_nthread: OtherOption([1, 2]) len=2
+)ConfigSpace (len=1280, space_map=
+   0 tile_b: Split(policy=factors, product=1, num_outputs=2) len=1
+   1 tile_h: Split(policy=factors, product=14, num_outputs=2) len=4
+   2 tile_w: Split(policy=factors, product=14, num_outputs=2) len=4
+   3 tile_ci: Split(policy=factors, product=8, num_outputs=2) len=4
+   4 tile_co: Split(policy=factors, product=16, num_outputs=2) len=5
+   5 oc_nthread: OtherOption([1, 2]) len=2
+   6 h_nthread: OtherOption([1, 2]) len=2
+)ConfigSpace (len=1600, space_map=
+   0 tile_b: Split(policy=factors, product=1, num_outputs=2) len=1
+   1 tile_h: Split(policy=factors, product=14, num_outputs=2) len=4
+   2 tile_w: Split(policy=factors, product=14, num_outputs=2) len=4
+   3 tile_ci: Split(policy=factors, product=16, num_outputs=2) len=5
+   4 tile_co: Split(policy=factors, product=16, num_outputs=2) len=5
+   5 oc_nthread: OtherOption([1, 2]) len=2
+   6 h_nthread: OtherOption([1, 2]) len=2
+)ConfigSpace (len=1280, space_map=
+   0 tile_b: Split(policy=factors, product=1, num_outputs=2) len=1
+   1 tile_h: Split(policy=factors, product=14, num_outputs=2) len=4
+   2 tile_w: Split(policy=factors, product=14, num_outputs=2) len=4
+   3 tile_ci: Split(policy=factors, product=8, num_outputs=2) len=4
+   4 tile_co: Split(policy=factors, product=16, num_outputs=2) len=5
+   5 oc_nthread: OtherOption([1, 2]) len=2
+   6 h_nthread: OtherOption([1, 2]) len=2
+)ConfigSpace (len=480, space_map=
+   0 tile_b: Split(policy=factors, product=1, num_outputs=2) len=1
+   1 tile_h: Split(policy=factors, product=7, num_outputs=2) len=2
+   2 tile_w: Split(policy=factors, product=7, num_outputs=2) len=2
+   3 tile_ci: Split(policy=factors, product=16, num_outputs=2) len=5
+   4 tile_co: Split(policy=factors, product=32, num_outputs=2) len=6
+   5 oc_nthread: OtherOption([1, 2]) len=2
+   6 h_nthread: OtherOption([1, 2]) len=2
+)ConfigSpace (len=576, space_map=
+   0 tile_b: Split(policy=factors, product=1, num_outputs=2) len=1
+   1 tile_h: Split(policy=factors, product=7, num_outputs=2) len=2
+   2 tile_w: Split(policy=factors, product=7, num_outputs=2) len=2
+   3 tile_ci: Split(policy=factors, product=32, num_outputs=2) len=6
+   4 tile_co: Split(policy=factors, product=32, num_outputs=2) len=6
+   5 oc_nthread: OtherOption([1, 2]) len=2
+   6 h_nthread: OtherOption([1, 2]) len=2
+)ConfigSpace (len=480, space_map=
+   0 tile_b: Split(policy=factors, product=1, num_outputs=2) len=1
+   1 tile_h: Split(policy=factors, product=7, num_outputs=2) len=2
+   2 tile_w: Split(policy=factors, product=7, num_outputs=2) len=2
+   3 tile_ci: Split(policy=factors, product=16, num_outputs=2) len=5
+   4 tile_co: Split(policy=factors, product=32, num_outputs=2) len=6
+   5 oc_nthread: OtherOption([1, 2]) len=2
+   6 h_nthread: OtherOption([1, 2]) len=2
+)
