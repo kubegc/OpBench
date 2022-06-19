@@ -21,6 +21,7 @@ from vta.testing import simulator
 from vta.top import graph_pack
 from tvm.autotvm.task import TaskExtractEnv
 
+# python python/performance_collector/op_performance_collector.py --modelsource=local --modelname=resnet-18 --ifcompare=true --tuner=xgb_knob --target=pynq --trials=1000 --host=133.133.135.39 --port=9190 --iftune=true
 # python python/performance_collector/op_performance_collector.py --modelsource=local --modelname=resnet-18 --ifcompare=true --tuner=grid
 # python python/performance_collector/op_performance_collector.py --modelsource=local --modelname=resnet-18 --ifcompare=true --tuner=xgb --iftune=true --target=cuda --trials=3000
 # python python/performance_collector/op_performance_collector.py --modelsource=local --modelname=resnet-18 --ifcompare=true --tuner=xgb --iftune=true --target=pynq --trials=1500 --host=133.133.135.39 --port=9191
@@ -104,7 +105,7 @@ def timeit_performance(module, ctx):
     import timeit
     timing_number = 10
     timing_repeat = 10
-    print("read to run")
+    print("ready to run")
     timer = module.module.time_evaluator("run", ctx, number=timing_number, repeat=timing_repeat)
     unoptimized = np.array(timer().results) * 1000 / timing_number
     print("runned")
