@@ -13,8 +13,8 @@ cd build
 cmake -DCMAKE_BUILD_TYPE=DEBUG ..
 make -j40
 
-export TVM_HOME=/root/github/as-tvm
-export PYTHONPATH=$TVM_HOME/python:$TVM_HOME/vta/python:${PYTHONPATH}
+export TVM_HOME=/root/github/tvm
+export PYTHONPATH=$TVM_HOME/python:/root/github/OpBench/python:$TVM_HOME/vta/python:${PYTHONPATH}
 export VTA_HW_PATH=$TVM_HOME/3rdparty/vta-hw
 
 echo 'ready to test:'

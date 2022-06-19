@@ -67,8 +67,8 @@ def compile_network(env, target, model, start_pack, stop_pack):
             start_name=start_pack,
             stop_name=stop_pack,
         )
-        return tvm.IRModule.from_expr(relay_prog), params
-    return mod, params, dtype_dict, shape_dict
+        return relay_prog, params
+    return mod["main"], params
 
 def get_network(name, batch_size = 1, layout="NCHW", dtype="float32", sequence = 128, hidden_size = 768, num_hidden_layers = 12, num_attention_heads = 12, intermediate_size = 3072, max_position_embeddings = 512):
     """Get the symbol definition and random weight of a network"""

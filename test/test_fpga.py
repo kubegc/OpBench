@@ -53,18 +53,18 @@ if env.TARGET not in ["sim", "tsim", "intelfocl"]:
     # Get remote from tracker node if environment variable is set.
     # To set up the tracker, you'll need to follow the "Auto-tuning
     # a convolutional network for VTA" tutorial.
-    tracker_host = os.environ.get("TVM_TRACKER_HOST", None)
-    tracker_port = os.environ.get("TVM_TRACKER_PORT", None)
+    tracker_host = "133.133.135.39"
+    tracker_port = "9190"
     # Otherwise if you have a device you want to program directly from
     # the host, make sure you've set the variables below to the IP of
     # your board.
     device_host = os.environ.get("VTA_RPC_HOST", "133.133.135.18")
     device_port = os.environ.get("VTA_RPC_PORT", "9091")
     if not tracker_host or not tracker_port:
-        print("remote")
+        print("remote host")
         remote = rpc.connect(device_host, int(device_port))
     else:
-        print("remote2")
+        print("remote tracker")
         remote = autotvm.measure.request_remote(
             env.TARGET, tracker_host, int(tracker_port), timeout=10000
         )
@@ -108,7 +108,6 @@ with autotvm.tophub.context(target):
     # Update shape and type dictionary
     shape_dict.update({k: v.shape for k, v in params.items()})
     dtype_dict.update({k: str(v.dtype) for k, v in params.items()})
-
     if target.device_name == "vta":
         # Perform quantization in Relay
         # Note: We set opt_level to 3 in order to fold batch norm
@@ -186,7 +185,7 @@ image /= np.array([58.395, 57.12, 57.375])
 image = image.transpose((2, 0, 1))
 image = image[np.newaxis, :]
 image = np.repeat(image, env.BATCH, axis=0)
-
+print(image.shape)
 # Set the network parameters and inputs
 m.set_input(**params)
 m.set_input("data", image)

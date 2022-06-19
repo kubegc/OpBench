@@ -65,8 +65,8 @@ def compile_network(env, target, model, start_pack, stop_pack):
     return relay_prog, params
 
 # Tracker host and port can be set by your environment
-tracker_host = os.environ.get("TVM_TRACKER_HOST", "133.133.135.39")
-tracker_port = int(os.environ.get("TVM_TRACKER_PORT", 9191))
+tracker_host = "133.133.135.39"
+tracker_port =  9190
 
 # Load VTA parameters from the 3rdparty/vta-hw/config/vta_config.json file
 env = vta.get_env()
@@ -87,10 +87,11 @@ stop_pack = "nn.global_avg_pool2d"
 
 # Tuning option
 log_file = "%s.%s.log" % (device, network)
+print(env.TARGET)
 tuning_option = {
     "log_filename": log_file,
-    "tuner": "xgb",
-    "n_trial": 1000,
+    "tuner": "xgb_knob",
+    "n_trial": 10,
     "early_stopping": None,
     "measure_option": autotvm.measure_option(
         builder=autotvm.LocalBuilder(),
@@ -254,14 +255,14 @@ def tune_and_evaluate(tuning_opt):
     # return
 
     # run tuning tasks
-    print("Tuning...")
-    tune_tasks(tasks, **tuning_opt)
+    # print("Tuning...")
+    # tune_tasks(tasks, **tuning_opt)
 
     # evaluate with tuning history
     if env.TARGET != "sim":
         # Get remote from fleet node
         remote = autotvm.measure.request_remote(
-            env.TARGET, tracker_host, tracker_port, timeout=10000
+            env.TARGET, tracker_host, tracker_port, timeout=1000000
         )
         # Reconfigure the JIT runtime and FPGA.
         vta.reconfig_runtime(remote)
@@ -271,18 +272,18 @@ def tune_and_evaluate(tuning_opt):
         remote = rpc.LocalSession()
 
     # compile kernels with history best records
-    with autotvm.tophub.context(target, extra_files=[log_file]):
+    # with autotvm.tophub.context(target, extra_files=[log_file]):
         # Compile network
         print("Compile...")
-        if target.device_name != "vta":
-            with tvm.transform.PassContext(opt_level=3, disabled_pass={"AlterOpLayout"}):
-                lib = relay.build(
-                    relay_prog, target=target, params=params, target_host=env.target_host
+    if target.device_name != "vta":
+        with tvm.transform.PassContext(opt_level=3, disabled_pass={"AlterOpLayout"}):
+            lib = relay.build(
+                    relay_prog,  target=tvm.target.Target(target, host=env.target_host), params=params,
                 )
-        else:
-            with vta.build_config(opt_level=3, disabled_pass={"AlterOpLayout"}):
-                lib = relay.build(
-                    relay_prog, target=target, params=params, target_host=env.target_host
+    else:
+        with vta.build_config(opt_level=3, disabled_pass={"AlterOpLayout"}):
+            lib = relay.build(
+                    relay_prog, target=tvm.target.Target(target, host=env.target_host), params=params, 
                 )
 
         # Export library

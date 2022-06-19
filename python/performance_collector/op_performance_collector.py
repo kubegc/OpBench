@@ -68,14 +68,16 @@ def tune_tasks(
     for i, tsk in enumerate(reversed(tasks)):
         prefix = "[Task %2d/%2d] " % (i + 1, len(tasks))
 
-        # create tuner
+         # create tuner
         if tuner == "xgb" or tuner == "xgb-rank":
             tuner_obj = XGBTuner(tsk, loss_type="rank")
+        elif tuner == "xgb_knob":
+            tuner_obj = XGBTuner(tsk, loss_type="rank", feature_type="knob")
         elif tuner == "ga":
-            tuner_obj = GATuner(tsk, pop_size=100)
+            tuner_obj = GATuner(tsk, pop_size=50)
         elif tuner == "random":
             tuner_obj = RandomTuner(tsk)
-        elif tuner == "grid":
+        elif tuner == "gridsearch":
             tuner_obj = GridSearchTuner(tsk)
         else:
             raise ValueError("Invalid tuner: " + tuner)
@@ -98,15 +100,14 @@ def tune_tasks(
     autotvm.record.pick_best(tmp_log_file, log_filename)
     # os.remove(tmp_log_file)
 
-def timeit_performance(module):
+def timeit_performance(module, ctx):
     import timeit
     timing_number = 10
     timing_repeat = 10
-    unoptimized = (
-        np.array(timeit.Timer(lambda: module.run()).repeat(repeat=timing_repeat, number=timing_number))
-        * 1000
-        / timing_number
-    )
+    print("read to run")
+    timer = module.module.time_evaluator("run", ctx, number=timing_number, repeat=timing_repeat)
+    unoptimized = np.array(timer().results) * 1000 / timing_number
+    print("runned")
     unoptimized = {
         "mean": np.mean(unoptimized),
         "median": np.median(unoptimized),
@@ -173,7 +174,7 @@ def run_autoTVM(args,mod):
                     host=tracker_host,
                     port=tracker_port,
                     number=5,
-                    timeout=6000,
+                    timeout=60,
                     module_loader=vta.module_loader(),
                     # check_correctness=True, # TODO: re-enable when check_correctness works again.
                 ),
@@ -221,8 +222,8 @@ def extra_compile(args, mod, params):
             start_name=start_pack,
             stop_name=stop_pack,
         )
-        return tvm.IRModule.from_expr(relay_prog)
-    return mod
+        return relay_prog, tvm.IRModule.from_expr(relay_prog)
+    return mod, mod
 
 def register_vta_tuning_tasks():
     from tvm.autotvm.task import TaskExtractEnv
@@ -273,11 +274,8 @@ def get_lib_module_dev(args, mod, params):
         print("get mod lib")
         if env.TARGET != "sim":
             print("get remote")
-            # Get remote from fleet node
             remote = autotvm.measure.request_remote(
-                env.TARGET, args.host, args.port, timeout=10000
-            )
-            # Reconfigure the JIT runtime and FPGA.
+            env.TARGET, args.host, args.port, timeout=1000000)
             vta.reconfig_runtime(remote)
             vta.program_fpga(remote, bitstream=None)
         else:
@@ -286,20 +284,25 @@ def get_lib_module_dev(args, mod, params):
         if target.device_name != "vta":
             with tvm.transform.PassContext(opt_level=3, disabled_pass={"AlterOpLayout"}):
                 lib = relay.build(
-                    mod, target=target, params=params, target_host=env.target_host)
+                    mod,  target=tvm.target.Target(target, host=env.target_host), params=params,
+                )
         else:
-            with vta.build_config(opt_level=3, disabled_pass={"AlterOpLayout"}):
+            print("do here.")
+            with vta.build_config(
+            opt_level=3, disabled_pass={"AlterOpLayout", "tir.CommonSubexprElimTIR"}
+        ):
                 lib = relay.build(
-                    mod, target=target, params=params, target_host=env.target_host)
+                    relay_prog, target=tvm.target.Target(target, host=env.target_host), params=params, 
+                )
         # Export library
         print("Upload...")
         temp = utils.tempdir()
-        lib.export_library(temp.relpath("graphlib.tar"))
-        remote.upload(temp.relpath("graphlib.tar"))
-        lib = remote.load_module("graphlib.tar")
+        lib.export_library(temp.relpath("graphlib2.tar"))
+        remote.upload(temp.relpath("graphlib2.tar"))
+        lib = remote.load_module("graphlib2.tar")
         dev = remote.ext_dev(0) if device == "vta" else remote.cpu(0)
         module = graph_executor.GraphModule(lib["default"](dev))
-    return lib, module, target, dev
+    return lib, module, target, dev, params
 
 if __name__ == "__main__":
   parser = argparse.ArgumentParser()
@@ -322,35 +325,31 @@ if __name__ == "__main__":
     env = vta.get_env()
     device = "vta"
     target = env.target if device == "vta" else env.target_vta_cpu
-  if args.modelsource == 'mxnet':
-    mod, params, dtype_dict, shape_dict= model_importer.local_nns.compile_network(env, target, args.modelname, "nn.max_pool2d", "nn.global_avg_pool2d")
+  if args.modelsource == 'mxnet.vision':
+    relay_prog, params = model_importer.local_nns.compile_network(env, target, args.modelname, "nn.max_pool2d", "nn.global_avg_pool2d")
+    lib, module, target, dev, params = get_lib_module_dev(args, relay_prog, params)
   if args.modelsource == "local" :
     local_cnns = ["resnet-","resnet3d-","mobilenet","squeezenet_v1.1","inception_v3"]
     if args.modelname.startswith(local_cnns[0]) or args.modelname.startswith(local_cnns[1]) or args.modelname in local_cnns:
         mod, params, input_shape, output_shape = model_importer.local_nns.get_network(args.modelname)
-        mod = extra_compile(args, mod, params)
-        # input_name = "data"
-        # data = tvm.nd.array((np.random.uniform(size=input_shape)).astype("float32"))
-        # lib, module, target, dev = get_lib_module_dev(args, mod, params)
-        # module.set_input(input_name, data)
+        relay_prog, mod = extra_compile(args, mod, params)
         if args.iftune:
             run_autoTVM(args,mod)
         if args.ifcompare:
             print("compare")
-            # timeit_performance(module)
-            # timeit_performance(module)
-            # with autotvm.apply_history_best("/root/github/OpBench/data/Performance/"+args.modelname+ '-' + args.tuner +"-"+args.target+"-autotvm.json") as ab:
-            #     with tvm.transform.PassContext(opt_level=3, config={}):
-            #         print(ab.best_by_model)
-            #         print(ab.best_by_targetkey)
-            #         print(ab._best_user_defined)
-            #     # with tvm.transform.PassContext(opt_level=3, config={}):
-            #         lib = relay.build(mod, target=args.target, params=params)
-            # module = graph_executor.GraphModule(lib["default"](dev))
-            # data1 = tvm.nd.array((np.random.uniform(size=input_shape)).astype("float32"))
+            input_name = "data"
+            data = tvm.nd.array((np.random.uniform(size=input_shape)).astype("float32"))
+            # lib, module, target, dev, params = get_lib_module_dev(args, relay_prog, params)
+            # module.set_input(**params)
             # module.set_input(input_name, data)
-            # timeit_performance(module)
-            # timeit_performance(module)
+            # timeit_performance(module,dev)
+            with autotvm.apply_history_best("/root/github/OpBench/data/Performance/"+args.modelname+ '-' + args.tuner +"-"+args.target+"-autotvm.json") as ab:
+                print(ab.best_by_model)
+                print(ab.best_by_targetkey)
+                print(ab._best_user_defined)
+                lib, module, target, dev, params = get_lib_module_dev(args, relay_prog, params)
+                module.set_input(input_name, data)
+                timeit_performance(module,dev)
     else:
         print("error local model name.")
   elif args.modelsource=="transformers":
