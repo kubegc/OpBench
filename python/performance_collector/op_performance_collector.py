@@ -45,8 +45,8 @@ from tvm.autotvm.task import TaskExtractEnv
 # python python/performance_collector/op_performance_collector.py --modelsource=transformers --modelname=nasnetalarge --target=cuda
 # python python/performance_collector/op_performance_collector.py --modelsource=transformers --modelname=lstm --target=llvm
 # python python/performance_collector/op_performance_collector.py --modelsource=transformers --modelname=lstm --target=cuda
-# python python/performance_collector/op_performance_collector.py --modelsource=remoteonnx --modelname=https://github.com/onnx/models/blob/master/text/machine_comprehension/t5/model/t5-decoder-with-lm-head-12.tar.gz --target=llvm
-# python python/performance_collector/op_performance_collector.py --modelsource=remoteonnx --modelname=https://github.com/onnx/models/blob/master/text/machine_comprehension/t5/model/t5-decoder-with-lm-head-12.tar.gz --target=cuda
+# python python/performance_collector/op_performance_collector.py --modelsource=remoteonnx --modelname=https://github.com/onnx/models/blob/master/text/machine_comprehension/t5/model/t5-decoder-with-lm-head-12.tar.gz --target=llvm 
+# python python/performance_collector/op_performance_collector.py --modelsource=remoteonnx --modelname=https://github.com/onnx/models/blob/master/text/machine_comprehension/t5/model/t5-decoder-with-lm-head-12.tar.gz --target=cuda --iftune=true --ifcompare=true
 # python python/performance_collector/op_performance_collector.py --modelsource=remoteonnx --modelname=https://github.com/onnx/models/blob/master/text/machine_comprehension/t5/model/t5-encoder-12.tar.gz --target=llvm
 # python python/performance_collector/op_performance_collector.py --modelsource=remoteonnx --modelname=https://github.com/onnx/models/blob/master/text/machine_comprehension/t5/model/t5-encoder-12.tar.gz --target=cuda
 # python python/performance_collector/op_performance_collector.py --modelsource=simple --modelname=matmul --target=llvm
