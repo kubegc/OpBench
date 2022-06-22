@@ -36,7 +36,9 @@ from tvm.autotvm.task import TaskExtractEnv
 # python python/performance_collector/op_performance_collector.py --modelsource=local --modelname=inception_v3 --target=llvm
 # python python/performance_collector/op_performance_collector.py --modelsource=local --modelname=inception_v3 --target=cuda
 # python python/performance_collector/op_performance_collector.py --modelsource=transformers --modelname=bert --target=llvm
-# python python/performance_collector/op_performance_collector.py --modelsource=transformers --modelname=bert --target=cuda
+# python python/performance_collector/op_performance_collector.py --modelsource=transformers --modelname=bert --target=cuda --iftune=true --ifcompare=true --tuner=xgb_knob --trials=3000
+# python python/performance_collector/op_performance_collector.py --modelsource=transformers --modelname=bert --target=cuda --ifcompare=true --tuner=xgb_knob --trials=3000
+# python python/performance_collector/op_performance_collector.py --modelsource=transformers --modelname=bert --target=cuda --ifcompare=true --tuner=xgb_knob
 # python python/performance_collector/op_performance_collector.py --modelsource=transformers --modelname=gpt2 --target=llvm
 # python python/performance_collector/op_performance_collector.py --modelsource=transformers --modelname=gpt2 --target=cuda
 # python python/performance_collector/op_performance_collector.py --modelsource=transformers --modelname=roberta --target=llvm
@@ -133,12 +135,12 @@ def run_autoTVM(args,mod):
             )
         tuning_option = {
             "tuner": args.tuner,
-            "trials": args.trials, # 1500,3000
+            "n_trial": args.trials, # 1500,3000
             "early_stopping": None,
             "measure_option": autotvm.measure_option(
                 builder=autotvm.LocalBuilder(), runner=runner
             ),
-            "tuning_records": "/root/github/OpBench/data/Performance/"+args.modelname+ '-' + args.tuner +"-"+str(args.target)+"-autotvm.json",
+            "log_filename": "/root/github/OpBench/data/Performance/"+args.modelname+ '-' + args.tuner +"-"+str(args.target)+"-autotvm.json",
         }
         tasks = autotvm.task.extract_from_program(mod["main"], target=args.target, params=params)
     elif args.target == 'cuda':
@@ -365,12 +367,18 @@ if __name__ == "__main__":
         with tvm.transform.PassContext(opt_level=0, config={"relay.backend.use_auto_scheduler": False}):
             if args.iftune:
                 run_autoTVM(args,mod)
-            # lib = relay.build(mod, target=target, params=params)
-            # module = graph_executor.create(lib.get_graph_json(),lib.get_lib(), device, dump_root = '/root/github/debug_dump/' + network)
-            # input_ids = tvm.nd.array((np.random.uniform(size=input_shape)).astype("int64"))
-            # module.set_input("input_ids", input_ids)
-            # print("Evaluate inference time cost...")
-            # module.run()
+            if args.ifcompare:
+                lib, module, target, dev, params = get_lib_module_dev(args, mod, params)
+                input_ids = tvm.nd.array((np.random.uniform(size=input_shape)).astype("int64"))
+                module.set_input("input_ids", input_ids)
+                timeit_performance(module,dev)
+                with autotvm.apply_history_best("/root/github/OpBench/data/Performance/"+args.modelname+ '-' + args.tuner +"-"+args.target+"-autotvm.json") as ab:
+                    print(ab.best_by_model)
+                    print(ab.best_by_targetkey)
+                    print(ab._best_user_defined)
+                    lib, module, target, dev, params = get_lib_module_dev(args, mod, params)
+                    module.set_input("input_ids", input_ids)
+                    timeit_performance(module,dev)
     elif network == "nasnetalarge":
             #target = tvm.target.Target("llvm -mcpu=core-avx2")
             # target = tvm.target.Target("llvm -mcpu=skylake-avx512")
