@@ -39,8 +39,8 @@ from tvm.autotvm.task import TaskExtractEnv
 # python python/performance_collector/op_performance_collector.py --modelsource=transformers --modelname=bert --target=cuda --iftune=true --ifcompare=true --tuner=xgb_knob --trials=3000
 # python python/performance_collector/op_performance_collector.py --modelsource=transformers --modelname=bert --target=cuda --ifcompare=true --tuner=xgb_knob --trials=3000
 # python python/performance_collector/op_performance_collector.py --modelsource=transformers --modelname=bert --target=cuda --ifcompare=true --tuner=xgb_knob
-# python python/performance_collector/op_performance_collector.py --modelsource=transformers --modelname=gpt2 --target=llvm
-# python python/performance_collector/op_performance_collector.py --modelsource=transformers --modelname=gpt2 --target=cuda
+# python python/performance_collector/op_performance_collector.py --modelsource=transformers --modelname=gpt2 --target=llvm --iftune=true --tuner=xgb_knob --trials=1500
+# python python/performance_collector/op_performance_collector.py --modelsource=transformers --modelname=gpt2 --target=cuda 
 # python python/performance_collector/op_performance_collector.py --modelsource=transformers --modelname=roberta --target=llvm
 # python python/performance_collector/op_performance_collector.py --modelsource=transformers --modelname=roberta --target=cuda
 # python python/performance_collector/op_performance_collector.py --modelsource=transformers --modelname=nasnetalarge --target=llvm

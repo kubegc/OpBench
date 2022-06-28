@@ -3,6 +3,11 @@ ConfigSpace (len=624, space_map=
    1 tile_oc: Split(policy=factors, product=96, num_outputs=2) len=12
    2 tile_ow: Split(policy=verbose, product=165, num_outputs=2) len=13
    3 unroll_kw: OtherOption([True, False]) len=2
+)ConfigSpace (len=2496, space_map=
+   0 tile_ic: Split(policy=factors, product=96, num_outputs=2) len=12
+   1 tile_oc: Split(policy=factors, product=42, num_outputs=2) len=8
+   2 tile_ow: Split(policy=verbose, product=165, num_outputs=2) len=13
+   3 tile_oh: OtherOption([1, 2]) len=2
 )ConfigSpace (len=288, space_map=
    0 tile_ic: Split(policy=factors, product=96, num_outputs=2) len=12
    1 tile_oc: Split(policy=factors, product=96, num_outputs=2) len=12
@@ -18,11 +23,6 @@ ConfigSpace (len=624, space_map=
    1 tile_oc: Split(policy=factors, product=42, num_outputs=2) len=8
    2 tile_ow: Split(policy=factors, product=83, num_outputs=2) len=1
    3 unroll_kw: OtherOption([True, False]) len=2
-)ConfigSpace (len=2496, space_map=
-   0 tile_ic: Split(policy=factors, product=96, num_outputs=2) len=12
-   1 tile_oc: Split(policy=factors, product=42, num_outputs=2) len=8
-   2 tile_ow: Split(policy=verbose, product=165, num_outputs=2) len=13
-   3 tile_oh: OtherOption([1, 2]) len=2
 )ConfigSpace (len=896, space_map=
    0 tile_ic: Split(policy=factors, product=42, num_outputs=2) len=8
    1 tile_oc: Split(policy=factors, product=42, num_outputs=2) len=8
@@ -53,6 +53,11 @@ ConfigSpace (len=624, space_map=
    1 tile_oc: Split(policy=factors, product=84, num_outputs=2) len=12
    2 tile_ow: Split(policy=verbose, product=42, num_outputs=2) len=12
    3 tile_oh: OtherOption([1, 2]) len=2
+)ConfigSpace (len=2688, space_map=
+   0 tile_ic: Split(policy=factors, product=168, num_outputs=2) len=16
+   1 tile_oc: Split(policy=factors, product=84, num_outputs=2) len=12
+   2 tile_ow: Split(policy=verbose, product=83, num_outputs=2) len=7
+   3 tile_oh: OtherOption([1, 2]) len=2
 )ConfigSpace (len=2304, space_map=
    0 tile_ic: Split(policy=factors, product=84, num_outputs=2) len=12
    1 tile_oc: Split(policy=factors, product=84, num_outputs=2) len=12
@@ -68,11 +73,6 @@ ConfigSpace (len=624, space_map=
    1 tile_oc: Split(policy=factors, product=84, num_outputs=2) len=12
    2 tile_ow: Split(policy=factors, product=42, num_outputs=2) len=8
    3 unroll_kw: OtherOption([True, False]) len=2
-)ConfigSpace (len=2688, space_map=
-   0 tile_ic: Split(policy=factors, product=168, num_outputs=2) len=16
-   1 tile_oc: Split(policy=factors, product=84, num_outputs=2) len=12
-   2 tile_ow: Split(policy=verbose, product=83, num_outputs=2) len=7
-   3 tile_oh: OtherOption([1, 2]) len=2
 )ConfigSpace (len=2304, space_map=
    0 tile_ic: Split(policy=factors, product=84, num_outputs=2) len=12
    1 tile_oc: Split(policy=factors, product=84, num_outputs=2) len=12
@@ -112,11 +112,6 @@ ConfigSpace (len=624, space_map=
    0 tile_ic: Split(policy=factors, product=1008, num_outputs=2) len=30
    1 tile_oc: Split(policy=factors, product=168, num_outputs=2) len=16
    2 tile_ow: Split(policy=verbose, product=42, num_outputs=2) len=12
-   3 tile_oh: OtherOption([1, 2]) len=2
-)ConfigSpace (len=7680, space_map=
-   0 tile_ic: Split(policy=factors, product=1008, num_outputs=2) len=30
-   1 tile_oc: Split(policy=factors, product=168, num_outputs=2) len=16
-   2 tile_ow: Split(policy=verbose, product=21, num_outputs=2) len=8
    3 tile_oh: OtherOption([1, 2]) len=2
 )ConfigSpace (len=14400, space_map=
    0 tile_ic: Split(policy=factors, product=1008, num_outputs=2) len=30
@@ -166,6 +161,11 @@ ConfigSpace (len=624, space_map=
 )ConfigSpace (len=8960, space_map=
    0 tile_ic: Split(policy=factors, product=1344, num_outputs=2) len=28
    1 tile_oc: Split(policy=factors, product=336, num_outputs=2) len=20
+   2 tile_ow: Split(policy=verbose, product=21, num_outputs=2) len=8
+   3 tile_oh: OtherOption([1, 2]) len=2
+)ConfigSpace (len=7680, space_map=
+   0 tile_ic: Split(policy=factors, product=1008, num_outputs=2) len=30
+   1 tile_oc: Split(policy=factors, product=168, num_outputs=2) len=16
    2 tile_ow: Split(policy=verbose, product=21, num_outputs=2) len=8
    3 tile_oh: OtherOption([1, 2]) len=2
 )ConfigSpace (len=11520, space_map=

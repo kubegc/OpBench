@@ -7,6 +7,15 @@ ConfigSpace (len=44040192, space_map=
    5 tile_rx: Split(policy=factors, product=3, num_outputs=2) len=2
    6 auto_unroll_max_step: OtherOption([0, 512, 1500]) len=3
    7 unroll_explicit: OtherOption([0, 1]) len=2
+)ConfigSpace (len=18874368, space_map=
+   0 tile_f: Split(policy=factors, product=42, num_outputs=4) len=64
+   1 tile_y: Split(policy=factors, product=165, num_outputs=4) len=64
+   2 tile_x: Split(policy=factors, product=165, num_outputs=4) len=64
+   3 tile_rc: Split(policy=factors, product=96, num_outputs=2) len=12
+   4 tile_ry: Split(policy=factors, product=1, num_outputs=2) len=1
+   5 tile_rx: Split(policy=factors, product=1, num_outputs=2) len=1
+   6 auto_unroll_max_step: OtherOption([0, 512, 1500]) len=3
+   7 unroll_explicit: OtherOption([0, 1]) len=2
 )ConfigSpace (len=21504, space_map=
    0 tile_f: Split(policy=factors, product=96, num_outputs=4) len=224
    1 tile_y: Split(policy=factors, product=83, num_outputs=4) len=4
@@ -28,15 +37,6 @@ ConfigSpace (len=44040192, space_map=
    2 tile_x: Split(policy=factors, product=83, num_outputs=4) len=4
    3 auto_unroll_max_step: OtherOption([0, 256, 1500]) len=3
    4 unroll_explicit: OtherOption([0, 1]) len=2
-)ConfigSpace (len=18874368, space_map=
-   0 tile_f: Split(policy=factors, product=42, num_outputs=4) len=64
-   1 tile_y: Split(policy=factors, product=165, num_outputs=4) len=64
-   2 tile_x: Split(policy=factors, product=165, num_outputs=4) len=64
-   3 tile_rc: Split(policy=factors, product=96, num_outputs=2) len=12
-   4 tile_ry: Split(policy=factors, product=1, num_outputs=2) len=1
-   5 tile_rx: Split(policy=factors, product=1, num_outputs=2) len=1
-   6 auto_unroll_max_step: OtherOption([0, 512, 1500]) len=3
-   7 unroll_explicit: OtherOption([0, 1]) len=2
 )ConfigSpace (len=49152, space_map=
    0 tile_f: Split(policy=factors, product=42, num_outputs=4) len=64
    1 tile_y: Split(policy=factors, product=83, num_outputs=4) len=4
@@ -79,6 +79,15 @@ ConfigSpace (len=44040192, space_map=
    5 tile_rx: Split(policy=factors, product=1, num_outputs=2) len=1
    6 auto_unroll_max_step: OtherOption([0, 512, 1500]) len=3
    7 unroll_explicit: OtherOption([0, 1]) len=2
+)ConfigSpace (len=245760, space_map=
+   0 tile_f: Split(policy=factors, product=84, num_outputs=4) len=160
+   1 tile_y: Split(policy=factors, product=83, num_outputs=4) len=4
+   2 tile_x: Split(policy=factors, product=83, num_outputs=4) len=4
+   3 tile_rc: Split(policy=factors, product=168, num_outputs=2) len=16
+   4 tile_ry: Split(policy=factors, product=1, num_outputs=2) len=1
+   5 tile_rx: Split(policy=factors, product=1, num_outputs=2) len=1
+   6 auto_unroll_max_step: OtherOption([0, 512, 1500]) len=3
+   7 unroll_explicit: OtherOption([0, 1]) len=2
 )ConfigSpace (len=3932160, space_map=
    0 tile_f: Split(policy=factors, product=84, num_outputs=4) len=160
    1 tile_y: Split(policy=factors, product=42, num_outputs=4) len=64
@@ -100,15 +109,6 @@ ConfigSpace (len=44040192, space_map=
    2 tile_x: Split(policy=factors, product=42, num_outputs=4) len=64
    3 auto_unroll_max_step: OtherOption([0, 256, 1500]) len=3
    4 unroll_explicit: OtherOption([0, 1]) len=2
-)ConfigSpace (len=245760, space_map=
-   0 tile_f: Split(policy=factors, product=84, num_outputs=4) len=160
-   1 tile_y: Split(policy=factors, product=83, num_outputs=4) len=4
-   2 tile_x: Split(policy=factors, product=83, num_outputs=4) len=4
-   3 tile_rc: Split(policy=factors, product=168, num_outputs=2) len=16
-   4 tile_ry: Split(policy=factors, product=1, num_outputs=2) len=1
-   5 tile_rx: Split(policy=factors, product=1, num_outputs=2) len=1
-   6 auto_unroll_max_step: OtherOption([0, 512, 1500]) len=3
-   7 unroll_explicit: OtherOption([0, 1]) len=2
 )ConfigSpace (len=3932160, space_map=
    0 tile_f: Split(policy=factors, product=84, num_outputs=4) len=160
    1 tile_y: Split(policy=factors, product=42, num_outputs=4) len=64
@@ -161,15 +161,6 @@ ConfigSpace (len=44040192, space_map=
    0 tile_f: Split(policy=factors, product=168, num_outputs=4) len=320
    1 tile_y: Split(policy=factors, product=42, num_outputs=4) len=64
    2 tile_x: Split(policy=factors, product=42, num_outputs=4) len=64
-   3 tile_rc: Split(policy=factors, product=1008, num_outputs=2) len=30
-   4 tile_ry: Split(policy=factors, product=1, num_outputs=2) len=1
-   5 tile_rx: Split(policy=factors, product=1, num_outputs=2) len=1
-   6 auto_unroll_max_step: OtherOption([0, 512, 1500]) len=3
-   7 unroll_explicit: OtherOption([0, 1]) len=2
-)ConfigSpace (len=14745600, space_map=
-   0 tile_f: Split(policy=factors, product=168, num_outputs=4) len=320
-   1 tile_y: Split(policy=factors, product=21, num_outputs=4) len=16
-   2 tile_x: Split(policy=factors, product=21, num_outputs=4) len=16
    3 tile_rc: Split(policy=factors, product=1008, num_outputs=2) len=30
    4 tile_ry: Split(policy=factors, product=1, num_outputs=2) len=1
    5 tile_rx: Split(policy=factors, product=1, num_outputs=2) len=1
@@ -243,6 +234,15 @@ ConfigSpace (len=44040192, space_map=
    1 tile_y: Split(policy=factors, product=21, num_outputs=4) len=16
    2 tile_x: Split(policy=factors, product=21, num_outputs=4) len=16
    3 tile_rc: Split(policy=factors, product=1344, num_outputs=2) len=28
+   4 tile_ry: Split(policy=factors, product=1, num_outputs=2) len=1
+   5 tile_rx: Split(policy=factors, product=1, num_outputs=2) len=1
+   6 auto_unroll_max_step: OtherOption([0, 512, 1500]) len=3
+   7 unroll_explicit: OtherOption([0, 1]) len=2
+)ConfigSpace (len=14745600, space_map=
+   0 tile_f: Split(policy=factors, product=168, num_outputs=4) len=320
+   1 tile_y: Split(policy=factors, product=21, num_outputs=4) len=16
+   2 tile_x: Split(policy=factors, product=21, num_outputs=4) len=16
+   3 tile_rc: Split(policy=factors, product=1008, num_outputs=2) len=30
    4 tile_ry: Split(policy=factors, product=1, num_outputs=2) len=1
    5 tile_rx: Split(policy=factors, product=1, num_outputs=2) len=1
    6 auto_unroll_max_step: OtherOption([0, 512, 1500]) len=3
