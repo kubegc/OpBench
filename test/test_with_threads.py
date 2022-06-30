@@ -39,9 +39,14 @@ def timeit_performance(module, ctx):
     print(unoptimized)
     return unoptimized
 
+# tvm.target.cuda() 
+# tvm.target.Target
+cuda = "cuda -keys=cuda,gpu -max_num_threads=1024 -thread_warp_size=1024"
+llvm = "llvm -keys=cpu -link-params=0"
+
 with tvm.transform.PassContext(opt_level=3, config={}):
-    lib = relay.build(mod, target="llvm", params=params)
-    dev = tvm.device(str("llvm"), 0)
+    lib = relay.build(mod, cuda, params=params)
+    dev = tvm.device(str(cuda), 0)
     module = graph_executor.GraphModule(lib["default"](dev))
     data = tvm.nd.array((np.random.uniform(size=input_shape)).astype("float32"))
     module.set_input("data", data)
