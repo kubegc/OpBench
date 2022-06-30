@@ -5,7 +5,7 @@ from PIL import Image
 import numpy as np
 import tvm.relay as relay
 import tvm
-from tvm.contrib import graph_executor, utils, download
+from tvm.contrib.debugger import debug_executor as graph_executor
 import argparse
 import tvm.auto_scheduler as auto_scheduler
 from tvm.autotvm.tuner import XGBTuner, GATuner, RandomTuner, GridSearchTuner
@@ -41,14 +41,15 @@ def timeit_performance(module, ctx):
 
 # tvm.target.cuda() 
 # tvm.target.Target
-cuda = "cuda -keys=cuda,gpu -max_num_threads=1024 -thread_warp_size=1024"
+cuda = "cuda -keys=cuda,gpu -max_num_threads=1024 -thread_warp_size=32"
 llvm = "llvm -keys=cpu -link-params=0"
 
 with tvm.transform.PassContext(opt_level=3, config={}):
     lib = relay.build(mod, cuda, params=params)
     dev = tvm.device(str(cuda), 0)
-    module = graph_executor.GraphModule(lib["default"](dev))
+    module = graph_executor.create(lib.get_graph_json(), lib.get_lib(), dev, dump_root="/tmp/tvmdbg")
     data = tvm.nd.array((np.random.uniform(size=input_shape)).astype("float32"))
     module.set_input("data", data)
-    timeit_performance(module,dev)
+    module.run()
+    # timeit_performance(module,dev)
 
