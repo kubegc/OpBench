@@ -1,3 +1,4 @@
+import sys
 import onnx
 import transformers
 from tvm.contrib.download import download_testdata
@@ -21,7 +22,9 @@ from vta.testing import simulator
 from vta.top import graph_pack
 from tvm.autotvm.task import TaskExtractEnv
 
-mod, params, input_shape, output_shape = model_importer.local_nns.get_network("resnet-18")
+mod_name = sys.argv[1]
+
+mod, params, input_shape, output_shape = model_importer.local_nns.get_network(mod_name)
 
 def timeit_performance(module, ctx):
     import timeit
@@ -40,16 +43,25 @@ def timeit_performance(module, ctx):
     return unoptimized
 
 # tvm.target.cuda() 
-# tvm.target.Target
-cuda = "cuda -keys=cuda,gpu -max_num_threads=1024 -thread_warp_size=32"
-llvm = "llvm -keys=cpu -link-params=0"
+# tvm.target.Target 
 
-with tvm.transform.PassContext(opt_level=3, config={}):
-    lib = relay.build(mod, cuda, params=params)
-    dev = tvm.device(str(cuda), 0)
-    module = graph_executor.create(lib.get_graph_json(), lib.get_lib(), dev, dump_root="/tmp/tvmdbg")
-    data = tvm.nd.array((np.random.uniform(size=input_shape)).astype("float32"))
-    module.set_input("data", data)
-    module.run()
-    # timeit_performance(module,dev)
-
+if sys.argv[2] == "gpu":
+    cuda = "cuda -keys=cuda,gpu -max_num_threads={} -thread_warp_size={}".format(sys.argv[3], sys.argv[4])
+    with tvm.transform.PassContext(opt_level=3, config={}):
+        lib = relay.build(mod, cuda, params=params)
+        dev = tvm.device(str(cuda), 0)
+        module = graph_executor.create(lib.get_graph_json(), lib.get_lib(), dev, dump_root="/tmp/tvmdbg")
+        data = tvm.nd.array((np.random.uniform(size=input_shape)).astype("float32"))
+        module.set_input("data", data)
+        module.run()
+        # timeit_performance(module,dev)
+elif sys.argv[2] == "cpu":
+    llvm = "llvm -keys=cpu -link-params=0"
+    with tvm.transform.PassContext(opt_level=3, config={}):
+        lib = relay.build(mod, llvm, params=params)
+        dev = tvm.device(str(llvm), 0)
+        module = graph_executor.create(lib.get_graph_json(), lib.get_lib(), dev, dump_root="/tmp/tvmdbg")
+        data = tvm.nd.array((np.random.uniform(size=input_shape)).astype("float32"))
+        module.set_input("data", data)
+        module.run()
+        # timeit_performance(module,dev)

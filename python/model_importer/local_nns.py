@@ -6,7 +6,7 @@ from tvm import relay, auto_scheduler
 import tvm.relay.testing
 # from tvm.contrib import graph_executor
 from tvm.contrib.debugger import debug_executor as graph_executor
-import python.model_importer.neworkx_visualizer as neworkx_visualizer
+import model_importer.neworkx_visualizer as neworkx_visualizer
 from vta.top import graph_pack
 from mxnet.gluon.model_zoo import vision
 import numpy as np
