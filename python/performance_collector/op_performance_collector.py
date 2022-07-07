@@ -337,7 +337,7 @@ if __name__ == "__main__":
         mod, params, input_shape, output_shape = model_importer.local_nns.get_network(args.modelname)
         relay_prog, mod = extra_compile(args, mod, params)
         if args.iftune:
-            run_autoTVM(args,mod)
+            run_autoTVM(args, mod)
         if args.ifcompare:
             print("compare")
             input_name = "data"

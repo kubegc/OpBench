@@ -12,7 +12,7 @@ echo " wait 1 time, total 4 times"
 make clean; make runtime vta -j2
 
 export TVM_HOME=/home/xilinx/tvm
-export TVM_HOME=/tvm-fpga
+# export TVM_HOME=/tvm-fpga
 export PYTHONPATH=$TVM_HOME/python:$TVM_HOME/vta/python:/home/xilinx/pynq:${PYTHONPATH}
 export VTA_HW_PATH=$TVM_HOME/3rdparty/vta-hw
 # python3 -m vta.exec.rpc_server --tracker=133.133.135.39:9190 --key=pynq
