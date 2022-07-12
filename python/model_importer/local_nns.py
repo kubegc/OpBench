@@ -8,7 +8,7 @@ import tvm.relay.testing
 from tvm.contrib.debugger import debug_executor as graph_executor
 import model_importer.neworkx_visualizer as neworkx_visualizer
 from vta.top import graph_pack
-from mxnet.gluon.model_zoo import vision
+# from mxnet.gluon.model_zoo import vision
 import numpy as np
 
 os.environ['TVM_BACKTRACE']="1"

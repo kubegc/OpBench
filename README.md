@@ -3,12 +3,14 @@ Based on TVM. Profiling op performance with many features.
 
 ## Environment Preparation
 
+<!-- need to recheck :pip3 install --user mxnet requests "Pillow<7" -->
+<!-- tensorflow, nni is not supported on aarch. -->
 1. install cuda, llvm, pynq and tvm first.
 2. install necessary python librarys by using pip:
 ```
-pip3 install psutil xgboost cloudpickle pretrainedmodels cython tensorflow transformers nni six numpy decorator attrs tornado onnx memory_profiler pytest
-pip3 install --user mxnet requests "Pillow<7"
-pip3 install torch==1.8.2+cpu torchvision==0.9.2+cpu torchaudio==0.8.2 -f https://download.pytorch.org/whl/lts/1.8/torch_lts.html
+pip3 install psutil xgboost cloudpickle pretrainedmodels cython transformers  six numpy decorator attrs tornado onnx memory_profiler pytest
+
+pip3 install torch==1.8.1 torchvision==0.9.1 torchaudio==0.10.2 --extra-index-url https://download.pytorch.org/whl/lts/1.8/cpu
 ```
 3. install env path:
 

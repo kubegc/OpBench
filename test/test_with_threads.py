@@ -17,10 +17,10 @@ import model_importer.transformers_nns
 import model_importer.onnx_nns
 import model_importer.simple_nns
 import relay_profiler.util
-import vta
-from vta.testing import simulator
-from vta.top import graph_pack
-from tvm.autotvm.task import TaskExtractEnv
+# import vta
+# from vta.testing import simulator
+# from vta.top import graph_pack
+# from tvm.autotvm.task import TaskExtractEnv
 
 mod_name = sys.argv[1]
 
