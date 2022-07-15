@@ -10,10 +10,14 @@
 # touch "./res/test_with_threads_squeezenet_v1.1_cpu.txt"
 # touch "./res/test_with_threads_inception_v3_cpu.txt"
 
-touch "./res/test_with_threads_resnet-18_ft-cpu.txt"
-touch "./res/test_with_threads_mobilenet_ft-cpu.txt"
-touch "./res/test_with_threads_squeezenet_v1.1_ft-cpu.txt"
-touch "./res/test_with_threads_inception_v3_ft-cpu.txt"
+# touch "./res/test_with_threads_resnet-18_ft-cpu.txt"
+# touch "./res/test_with_threads_mobilenet_ft-cpu.txt"
+# touch "./res/test_with_threads_squeezenet_v1.1_ft-cpu.txt"
+# touch "./res/test_with_threads_inception_v3_ft-cpu.txt"
+
+touch "./res/test_with_threads_bert_ft-cpu.txt"
+touch "./res/test_with_threads_gpt2_ft-cpu.txt"
+touch "./res/test_with_threads_roberta_ft-cpu.txt"
 
 # for ((i = 1; i <= 40; i++)); do
 #     threads_num=$i
@@ -163,12 +167,81 @@ touch "./res/test_with_threads_inception_v3_ft-cpu.txt"
 #     done
 # done
 
+# for ((i = 1; i <= 64; i++)); do
+#     threads_num=$i
+
+#     alltimestr='0'
+#     for ((z = 0; z < 3; z++)); do
+#         output=`TVM_NUM_THREADS=$i python3 ./test_with_threads.py resnet-18 cpu`
+#         timestr=${output#*Total_time}
+#         timeval=`echo $timestr | sed 's/-//g' | sed 's/ //g'`
+#         alltimestr+='+'
+#         alltimestr+=$timeval
+#     done
+#     alltime='scale=3;('$alltimestr')/3'
+#     avertime=`echo $alltime | bc`
+#     input=$i' '$avertime
+#     echo $input >> ./res/test_with_threads_resnet-18_ft-cpu.txt
+# done
+
+# for ((i = 1; i <= 64; i++)); do
+#     threads_num=$i
+
+#     alltimestr='0'
+#     for ((z = 0; z < 3; z++)); do
+#         output=`TVM_NUM_THREADS=$i python3 ./test_with_threads.py mobilenet cpu`
+#         timestr=${output#*Total_time}
+#         timeval=`echo $timestr | sed 's/-//g' | sed 's/ //g'`
+#         alltimestr+='+'
+#         alltimestr+=$timeval
+#     done
+#     alltime='scale=3;('$alltimestr')/3'
+#     avertime=`echo $alltime | bc`
+#     input=$i' '$avertime
+#     echo $input >> ./res/test_with_threads_mobilenet_ft-cpu.txt
+# done
+
+# for ((i = 1; i <= 64; i++)); do
+#     threads_num=$i
+
+#     alltimestr='0'
+#     for ((z = 0; z < 3; z++)); do
+#         output=`TVM_NUM_THREADS=$i python3 ./test_with_threads.py squeezenet_v1.1 cpu`
+#         timestr=${output#*Total_time}
+#         timeval=`echo $timestr | sed 's/-//g' | sed 's/ //g'`
+#         alltimestr+='+'
+#         alltimestr+=$timeval
+#     done
+#     alltime='scale=3;('$alltimestr')/3'
+#     avertime=`echo $alltime | bc`
+#     input=$i' '$avertime
+#     echo $input >> ./res/test_with_threads_squeezenet_v1.1_ft-cpu.txt
+# done
+
+# for ((i = 1; i <= 64; i++)); do
+#     threads_num=$i
+
+#     alltimestr='0'
+#     for ((z = 0; z < 3; z++)); do
+#         output=`TVM_NUM_THREADS=$i python3 ./test_with_threads.py inception_v3 cpu`
+#         timestr=${output#*Total_time}
+#         timeval=`echo $timestr | sed 's/-//g' | sed 's/ //g'`
+#         alltimestr+='+'
+#         alltimestr+=$timeval
+#     done
+#     alltime='scale=3;('$alltimestr')/3'
+#     avertime=`echo $alltime | bc`
+#     input=$i' '$avertime
+#     echo $input >> ./res/test_with_threads_inception_v3_ft-cpu.txt
+# done
+
+
 for ((i = 1; i <= 64; i++)); do
     threads_num=$i
 
     alltimestr='0'
     for ((z = 0; z < 3; z++)); do
-        output=`TVM_NUM_THREADS=$i python3 ./test_with_threads.py resnet-18 cpu`
+        output=`TVM_NUM_THREADS=$i python3 ./test_with_threads.py transformers bert cpu`
         timestr=${output#*Total_time}
         timeval=`echo $timestr | sed 's/-//g' | sed 's/ //g'`
         alltimestr+='+'
@@ -177,7 +250,7 @@ for ((i = 1; i <= 64; i++)); do
     alltime='scale=3;('$alltimestr')/3'
     avertime=`echo $alltime | bc`
     input=$i' '$avertime
-    echo $input >> ./res/test_with_threads_resnet-18_ft-cpu.txt
+    echo $input >> ./res/test_with_threads_bert_ft-cpu.txt
 done
 
 for ((i = 1; i <= 64; i++)); do
@@ -185,7 +258,7 @@ for ((i = 1; i <= 64; i++)); do
 
     alltimestr='0'
     for ((z = 0; z < 3; z++)); do
-        output=`TVM_NUM_THREADS=$i python3 ./test_with_threads.py mobilenet cpu`
+        output=`TVM_NUM_THREADS=$i python3 ./test_with_threads.py transformers gpt2 cpu`
         timestr=${output#*Total_time}
         timeval=`echo $timestr | sed 's/-//g' | sed 's/ //g'`
         alltimestr+='+'
@@ -194,7 +267,7 @@ for ((i = 1; i <= 64; i++)); do
     alltime='scale=3;('$alltimestr')/3'
     avertime=`echo $alltime | bc`
     input=$i' '$avertime
-    echo $input >> ./res/test_with_threads_mobilenet_ft-cpu.txt
+    echo $input >> ./res/test_with_threads_gpt2_ft-cpu.txt
 done
 
 for ((i = 1; i <= 64; i++)); do
@@ -202,7 +275,7 @@ for ((i = 1; i <= 64; i++)); do
 
     alltimestr='0'
     for ((z = 0; z < 3; z++)); do
-        output=`TVM_NUM_THREADS=$i python3 ./test_with_threads.py squeezenet_v1.1 cpu`
+        output=`TVM_NUM_THREADS=$i python3 ./test_with_threads.py transformers roberta cpu`
         timestr=${output#*Total_time}
         timeval=`echo $timestr | sed 's/-//g' | sed 's/ //g'`
         alltimestr+='+'
@@ -211,22 +284,5 @@ for ((i = 1; i <= 64; i++)); do
     alltime='scale=3;('$alltimestr')/3'
     avertime=`echo $alltime | bc`
     input=$i' '$avertime
-    echo $input >> ./res/test_with_threads_squeezenet_v1.1_ft-cpu.txt
-done
-
-for ((i = 1; i <= 64; i++)); do
-    threads_num=$i
-
-    alltimestr='0'
-    for ((z = 0; z < 3; z++)); do
-        output=`TVM_NUM_THREADS=$i python3 ./test_with_threads.py inception_v3 cpu`
-        timestr=${output#*Total_time}
-        timeval=`echo $timestr | sed 's/-//g' | sed 's/ //g'`
-        alltimestr+='+'
-        alltimestr+=$timeval
-    done
-    alltime='scale=3;('$alltimestr')/3'
-    avertime=`echo $alltime | bc`
-    input=$i' '$avertime
-    echo $input >> ./res/test_with_threads_inception_v3_ft-cpu.txt
+    echo $input >> ./res/test_with_threads_roberta_ft-cpu.txt
 done
