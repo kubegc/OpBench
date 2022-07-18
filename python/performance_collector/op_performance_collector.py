@@ -21,6 +21,8 @@ from vta.testing import simulator
 from vta.top import graph_pack
 from tvm.autotvm.task import TaskExtractEnv
 
+# python python/performance_collector/op_performance_collector.py --modelsource=local --modelname=yolov5n --target=llvm --inputname=main --ifcompare=true --executor=vm
+
 # python python/performance_collector/op_performance_collector.py --modelsource=local --modelname=resnet-18 --ifcompare=true --tuner=xgb_knob --target=pynq --trials=1000 --host=133.133.135.39 --port=9190 --iftune=true
 # python python/performance_collector/op_performance_collector.py --modelsource=local --modelname=resnet-18 --ifcompare=true --tuner=grid
 # python python/performance_collector/op_performance_collector.py --modelsource=local --modelname=resnet-18 --ifcompare=true --tuner=xgb --iftune=true --target=cuda --trials=3000
@@ -103,13 +105,17 @@ def tune_tasks(
     autotvm.record.pick_best(tmp_log_file, log_filename)
     # os.remove(tmp_log_file)
 
-def timeit_performance(module, ctx):
+def timeit_performance(executor, module, ctx):
     import timeit
     timing_number = 10
     timing_repeat = 10
     print("ready to run")
-    timer = module.module.time_evaluator("run", ctx, number=timing_number, repeat=timing_repeat)
-    unoptimized = np.array(timer().results) * 1000 / timing_number
+    if executor == 'vm':
+        timer = module.module.time_evaluator("invoke", ctx, number=timing_number, repeat=timing_repeat)
+        unoptimized = np.array(timer("main").results) * 1000 / timing_number
+    else:
+        timer = module.module.time_evaluator("run", ctx, number=timing_number, repeat=timing_repeat)
+        unoptimized = np.array(timer().results) * 1000 / timing_number
     print("runned")
     unoptimized = {
         "mean": np.mean(unoptimized),
@@ -117,7 +123,10 @@ def timeit_performance(module, ctx):
         "std": np.std(unoptimized),
     }
     print(unoptimized)
-    return unoptimized
+    res = module.run()
+    for temp in res:
+        print(temp)
+    return 
 
 def run_autoTVM(args,mod):
     if args.target == 'llvm':
@@ -263,10 +272,16 @@ def register_vta_tuning_tasks():
 def get_lib_module_dev(args, mod, params):
     target = args.target
     if args.host is None or args.port is None:
-        with tvm.transform.PassContext(opt_level=3, config={}):
-            lib = relay.build(mod, target=args.target, params=params)
         dev = tvm.device(str(args.target), 0)
-        module = graph_executor.GraphModule(lib["default"](dev))
+        if args.executor == "default":
+            with tvm.transform.PassContext(opt_level=3, config={}):
+                lib = relay.build(mod, target=args.target, params=params)
+            module = graph_executor.GraphModule(lib["default"](dev))
+        elif args.executor == "vm":
+            from tvm.runtime.vm import VirtualMachine
+            with tvm.transform.PassContext(opt_level=3):
+                lib = relay.vm.compile(mod, target=target, params=params)
+            module = VirtualMachine(lib, dev)
     else:
         env = vta.get_env()
         device = "vta"
@@ -307,6 +322,24 @@ def get_lib_module_dev(args, mod, params):
         module = graph_executor.GraphModule(lib["default"](dev))
     return lib, module, target, dev, params
 
+def getYoloData():
+    from yolort.utils import get_image_from_url
+    import numpy as np
+    import cv2
+
+    in_size = 640
+    img_source = "https://huggingface.co/spaces/zhiqwang/assets/resolve/main/bus.jpg"
+    # img_source = "https://huggingface.co/spaces/zhiqwang/assets/resolve/main/zidane.jpg"
+    img = get_image_from_url(img_source)
+
+    img = img.astype("float32")
+    img = cv2.resize(img, (in_size, in_size))
+
+    img = np.transpose(img / 255.0, [2, 0, 1])
+    img = np.expand_dims(img, axis=0)
+    return img
+
+
 if __name__ == "__main__":
   parser = argparse.ArgumentParser()
   parser.add_argument('--modelsource', type=str, default = None)
@@ -314,7 +347,9 @@ if __name__ == "__main__":
   parser.add_argument('--target', type=str, default="llvm")
   parser.add_argument('--batchsize', type=int, default=1)
   parser.add_argument('--iftune', type=bool, default=False)
+  parser.add_argument('--inputname', type=str, default="data")
   parser.add_argument('--ifcompare', type=bool, default=False)
+  parser.add_argument('--executor', type=str, default='default')
   parser.add_argument('--tuner', type=str, default='xgb')
   parser.add_argument('--trials', type=int, default=10)
   parser.add_argument('--host', type=str, default=None)
@@ -332,7 +367,7 @@ if __name__ == "__main__":
     relay_prog, params = model_importer.local_nns.compile_network(env, target, args.modelname, "nn.max_pool2d", "nn.global_avg_pool2d")
     lib, module, target, dev, params = get_lib_module_dev(args, relay_prog, params)
   if args.modelsource == "local" :
-    local_cnns = ["resnet-","resnet3d-","mobilenet","squeezenet_v1.1","inception_v3"]
+    local_cnns = ["resnet-","resnet3d-","mobilenet","squeezenet_v1.1","inception_v3", "yolov5n"]
     if args.modelname.startswith(local_cnns[0]) or args.modelname.startswith(local_cnns[1]) or args.modelname in local_cnns:
         mod, params, input_shape, output_shape = model_importer.local_nns.get_network(args.modelname)
         relay_prog, mod = extra_compile(args, mod, params)
@@ -340,19 +375,25 @@ if __name__ == "__main__":
             run_autoTVM(args, mod)
         if args.ifcompare:
             print("compare")
-            input_name = "data"
-            data = tvm.nd.array((np.random.uniform(size=input_shape)).astype("float32"))
+            input_name = args.inputname
+            if args.modelname !="yolov5n":
+                data = tvm.nd.array((np.random.uniform(size=input_shape)).astype("float32"))
+            else:
+                data = getYoloData()
             # lib, module, target, dev, params = get_lib_module_dev(args, relay_prog, params)
             # module.set_input(**params)
             # module.set_input(input_name, data)
             # timeit_performance(module,dev)
             with autotvm.apply_history_best("/root/github/OpBench/data/Performance/"+args.modelname+ '-' + args.tuner +"-"+args.target+"-autotvm.json") as ab:
-                print(ab.best_by_model)
-                print(ab.best_by_targetkey)
-                print(ab._best_user_defined)
+                # print(ab.best_by_model)
+                # print(ab.best_by_targetkey)
+                # print(ab._best_user_defined)
                 lib, module, target, dev, params = get_lib_module_dev(args, relay_prog, params)
-                module.set_input(input_name, data)
-                timeit_performance(module,dev)
+                if args.modelname !="yolov5n":
+                    module.set_input(input_name, data)
+                else:
+                    module.set_input(input_name, **{"input0": data})
+                timeit_performance(args.executor, module, dev)
     else:
         print("error local model name.")
   elif args.modelsource=="transformers":
@@ -371,14 +412,14 @@ if __name__ == "__main__":
                 lib, module, target, dev, params = get_lib_module_dev(args, mod, params)
                 input_ids = tvm.nd.array((np.random.uniform(size=input_shape)).astype("int64"))
                 module.set_input("input_ids", input_ids)
-                timeit_performance(module,dev)
+                timeit_performance(args.executor, module, dev)
                 with autotvm.apply_history_best("/root/github/OpBench/data/Performance/"+args.modelname+ '-' + args.tuner +"-"+args.target+"-autotvm.json") as ab:
                     print(ab.best_by_model)
                     print(ab.best_by_targetkey)
                     print(ab._best_user_defined)
                     lib, module, target, dev, params = get_lib_module_dev(args, mod, params)
                     module.set_input("input_ids", input_ids)
-                    timeit_performance(module,dev)
+                    timeit_performance(args.executor, module, dev)
     elif network == "nasnetalarge":
             #target = tvm.target.Target("llvm -mcpu=core-avx2")
             # target = tvm.target.Target("llvm -mcpu=skylake-avx512")

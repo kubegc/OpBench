@@ -10,6 +10,8 @@ import model_importer.neworkx_visualizer as neworkx_visualizer
 from vta.top import graph_pack
 # from mxnet.gluon.model_zoo import vision
 import numpy as np
+from yolort.models import yolov5n
+from yolort.relay import get_trace_module
 
 os.environ['TVM_BACKTRACE']="1"
 
@@ -116,4 +118,13 @@ def get_network(name, batch_size = 1, layout="NCHW", dtype="float32", sequence =
     elif name == "inception_v3":
         input_shape = (batch_size, 3, 299, 299) if layout == "NCHW" else (batch_size, 299, 299, 3)
         mod, params = relay.testing.inception_v3.get_workload(batch_size=batch_size, dtype=dtype)
-    return mod, params, input_shape, output_shape
+    elif name == "yolov5n":
+        in_size = 640
+        input_shape = (in_size, in_size)
+        model_func = yolov5n(pretrained=True, size=(in_size, in_size))
+        script_module = get_trace_module(model_func, input_shape=input_shape)
+        input_name = "input0"
+        shape_list = [(input_name, (1, 3, *input_shape))]
+        mod, params = relay.frontend.from_pytorch(script_module, shape_list)
+        output_shape = ""
+    return mod, params, (1, 3, 640, 640), output_shape
