@@ -127,4 +127,4 @@ def get_network(name, batch_size = 1, layout="NCHW", dtype="float32", sequence =
         shape_list = [(input_name, (1, 3, *input_shape))]
         mod, params = relay.frontend.from_pytorch(script_module, shape_list)
         output_shape = ""
-    return mod, params, (1, 3, 640, 640), output_shape
+    return mod, params, input_shape, output_shape

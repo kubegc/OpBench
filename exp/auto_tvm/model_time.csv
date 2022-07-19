@@ -7,3 +7,7 @@ resnet-18, pynq, 79.98, 39.44
 resnet-18, cuda, 0.26, 0.23
 roberta, cuda, 13.31, 2.96
 roberta, llvm, 14.12, 12.35
+inception_v3, cuda, 1.35, 0.96
+inception_v3, llvm, 6.74, 4.60
+mobilenet, cuda, 0.23, 0.18
+mobilenet, llvm, 0.71, 0.57

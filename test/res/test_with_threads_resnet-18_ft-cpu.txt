@@ -1,3 +1,4 @@
+tvm_num_threads total_time
 1 436125.801
 2 222769.543
 3 152408.889
