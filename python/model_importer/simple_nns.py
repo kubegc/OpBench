@@ -41,9 +41,9 @@ def get_simple_network(network, target, dshape = (1024, 1024) ):
         x = relay.var("x", shape=dshape)
         y = relay.var("y", shape=dshape)
         z = relay.var("z", shape=dshape)
-        a = relay.var("a", shape=dshape)
+        # a = relay.var("a", shape=dshape)
         b = relay.nn.matmul(x, y)
-        c = relay.nn.matmul(z, a)
+        c = relay.nn.matmul(z, b)
         d = relay.add(b,c)
         func = relay.Function(relay.analysis.free_vars(d), d)
         mod = tvm.IRModule()
@@ -56,24 +56,25 @@ def get_simple_network(network, target, dshape = (1024, 1024) ):
         x = np.random.uniform(5,10,dshape).astype("float32")
         y = np.random.uniform(5,10,dshape).astype("float32")
         z = np.random.uniform(5,10,dshape).astype("float32")
-        a = np.random.uniform(5,10,dshape).astype("float32")
+        # a = np.random.uniform(5,10,dshape).astype("float32")
         with tvm.transform.PassContext(opt_level=0, disabled_pass=["AlterOpLayout"]):
             lib = relay.build(mod, target=target, params=model_params)
-            # print(type(lib.get_graph_json()))
-            # print(type(lib.get_lib()))
+            print(lib.get_graph_json())
+            print(type(lib.get_lib()))
             m = graph_executor.create(lib.get_graph_json(), lib.get_lib(), device, dump_root=dump_root)
-            # m.set_input('x',tvm.nd.array(x.astype(dtype)))
-            # m.set_input('y',tvm.nd.array(y.astype(dtype)))
-            # m.set_input('z',tvm.nd.array(z.astype(dtype)))
+            m.set_input('x',tvm.nd.array(x.astype(dtype)))
+            m.set_input('y',tvm.nd.array(y.astype(dtype)))
+            m.set_input('z',tvm.nd.array(z.astype(dtype)))
             # m.set_input('a',tvm.nd.array(a.astype(dtype)))
-            # m.run()
-            # tvm_out = m.get_output(0, tvm.nd.empty(dshape, dtype)).numpy()
-            # print(tvm_out)
+            m.run()
+            tvm_out = m.get_output(0, tvm.nd.empty(dshape, dtype)).numpy()
+            print(tvm_out)
         return mod, lib, m, model_params, dshape
     else:
         print("error simple network name.")
         return None, None, None
-    
+
+get_simple_network("matmul_matmul_add","llvm")
 
 
 # y = relay.nn.conv2d(x, relay.var("w1"), kernel_size=(1, 1), padding=(0, 0), channels=16)

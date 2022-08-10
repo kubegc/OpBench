@@ -106,7 +106,6 @@ def tune_tasks(
     # os.remove(tmp_log_file)
 
 def timeit_performance(executor, module, ctx):
-    import timeit
     timing_number = 10
     timing_repeat = 10
     print("ready to run")

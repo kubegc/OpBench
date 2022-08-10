@@ -31,14 +31,17 @@ With different paramters, it has certain usages:
 
 | Tag name | default | function |
 | -- | -- | -- |
-| --modelsource | None | You can specify "local","transformers", "remoteonnx", ""simple" to load different deep learning models without knowing its details |
+| --modelsource | None | You can specify "local","transformers", "remoteonnx", "simple" to load different deep learning models without knowing its details |
 | --modelname | None | currently it only supports tpyical CNNs, RNNs, a few Transformers |
-| --target | llvm | currently it supports llvm and cuda. FPGA, ARM CPU,Mali GPU is under development |
+| --target | llvm | currently it supports llvm, cuda, pynq. FPGA, ARM CPU,Mali GPU is under development |
 | --batchsize | 1 | currently it sets to 1, in further we will support to change it |
 | --iftune | false | true or false, weather it is to tune the DL model, currently it only support autoTVM with certain tuning settings |
 | --ifcompare | false |  true or false, it will run the DL model twice to compare weather it can optimize DL inference execution |
 | --tuner | xgb | xgb, xgb-rank, xgb_knob, xgb_itervar, xgb_curve, ga, random, gridsearch |
 | --trials | 3000 | 10-3000 |
+| --executor | vm, default | for dynamic tensor shapes|
+| --port | pynq (xilinx), TVM_TRACKER_HOST | for track port|
+| --host | pynq (xilinx), TVM_TRACKER_HOST | for track host|
 
 ## exprot config space
 
