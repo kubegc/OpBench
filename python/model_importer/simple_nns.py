@@ -72,7 +72,7 @@ def get_simple_network(network, target, dshape = (1024, 1024) ):
         return mod, lib, m, model_params, dshape
     else:
         print("error simple network name.")
-        return None, None, None
+        return None, None, None, None
 
 get_simple_network("matmul_matmul_add","llvm")
 
