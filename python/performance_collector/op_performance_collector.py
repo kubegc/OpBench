@@ -380,7 +380,8 @@ if __name__ == "__main__":
             else:
                 data = getYoloData()
             lib, module, target, dev, params = get_lib_module_dev(args, relay_prog, params)
-            module.set_input(**params)
+            if not args.modelname.startswith("yolov5"):
+                module.set_input(**params)
             module.set_input(input_name, data)
             timeit_performance(args.executor,module,dev)
             with autotvm.apply_history_best("/root/github/OpBench/data/Performance/"+args.modelname+ '-' + args.tuner +"-"+args.target+"-autotvm.json") as ab:
