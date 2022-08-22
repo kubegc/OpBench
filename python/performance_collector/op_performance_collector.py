@@ -20,6 +20,7 @@ import vta
 from vta.testing import simulator
 from vta.top import graph_pack
 from tvm.autotvm.task import TaskExtractEnv
+from tvm.runtime.profiler_vm import VirtualMachineProfiler
 
 # python python/performance_collector/op_performance_collector.py --modelsource=local --modelname=yolov5n --target=llvm --inputname=main --ifcompare=true --executor=vm
 
@@ -110,8 +111,9 @@ def timeit_performance(executor, module, ctx):
     timing_repeat = 10
     print("ready to run")
     if executor == 'vm':
-        timer = module.module.time_evaluator("invoke", ctx, number=timing_number, repeat=timing_repeat)
-        unoptimized = np.array(timer("main").results) * 1000 / timing_number
+        # timer = module.module.time_evaluator("invoke", ctx, number=timing_number, repeat=timing_repeat)
+        # unoptimized = np.array(timer("main").results) * 1000 / timing_number
+        print(module.profile())
     else:
         timer = module.module.time_evaluator("run", ctx, number=timing_number, repeat=timing_repeat)
         unoptimized = np.array(timer().results) * 1000 / timing_number
@@ -280,7 +282,7 @@ def get_lib_module_dev(args, mod, params):
             from tvm.runtime.vm import VirtualMachine
             with tvm.transform.PassContext(opt_level=3):
                 lib = relay.vm.compile(mod, target=target, params=params)
-            module = VirtualMachine(lib, dev)
+            module = VirtualMachineProfiler(lib, dev)
     else:
         env = vta.get_env()
         device = "vta"
@@ -362,9 +364,9 @@ if __name__ == "__main__":
     env = vta.get_env()
     device = "vta"
     target = env.target if device == "vta" else env.target_vta_cpu
-  if args.modelsource == 'mxnet.vision':
-    relay_prog, params = model_importer.local_nns.compile_network(env, target, args.modelname, "nn.max_pool2d", "nn.global_avg_pool2d")
-    lib, module, target, dev, params = get_lib_module_dev(args, relay_prog, params)
+#   if args.modelsource == 'mxnet.vision':
+#     relay_prog, params = model_importer.local_nns.compile_network(env, target, args.modelname, "nn.max_pool2d", "nn.global_avg_pool2d")
+#     lib, module, target, dev, params = get_lib_module_dev(args, relay_prog, params)
   if args.modelsource == "local" :
     local_cnns = ["resnet-","resnet3d-","mobilenet","squeezenet_v1.1","inception_v3", "yolov5n"]
     if args.modelname.startswith(local_cnns[0]) or args.modelname.startswith(local_cnns[1]) or args.modelname in local_cnns:
