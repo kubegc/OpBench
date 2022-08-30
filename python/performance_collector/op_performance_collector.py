@@ -374,18 +374,20 @@ if __name__ == "__main__":
         relay_prog, mod = extra_compile(args, mod, params)
         if args.iftune:
             run_autoTVM(args, mod)
+            
+        input_name = args.inputname
+        if args.modelname !="yolov5n":
+            data = tvm.nd.array((np.random.uniform(size=input_shape)).astype("float32"))
+        else:
+            data = getYoloData()
+        lib, module, target, dev, params = get_lib_module_dev(args, relay_prog, params)
+        if not args.modelname.startswith("yolov5"):
+            module.set_input(**params)
+        module.set_input(input_name, data)            
+        timeit_performance(args.executor,module,dev)
+
         if args.ifcompare:
             print("compare")
-            input_name = args.inputname
-            if args.modelname !="yolov5n":
-                data = tvm.nd.array((np.random.uniform(size=input_shape)).astype("float32"))
-            else:
-                data = getYoloData()
-            lib, module, target, dev, params = get_lib_module_dev(args, relay_prog, params)
-            if not args.modelname.startswith("yolov5"):
-                module.set_input(**params)
-            module.set_input(input_name, data)
-            timeit_performance(args.executor,module,dev)
             with autotvm.apply_history_best("/root/github/OpBench/data/Performance/"+args.modelname+ '-' + args.tuner +"-"+args.target+"-autotvm.json") as ab:
                 # print(ab.best_by_model)
                 # print(ab.best_by_targetkey)
