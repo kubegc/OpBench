@@ -1,4 +1,5 @@
 import os
+from turtle import window_height
 import numpy as np
 
 import tvm
@@ -127,4 +128,39 @@ def get_network(name, batch_size = 1, layout="NCHW", dtype="float32", sequence =
         shape_list = [(input_name, (1, 3, *input_shape))]
         mod, params = relay.frontend.from_pytorch(script_module, shape_list)
         output_shape = ""
+    elif name == "yolov3":
+        from tvm.contrib.download import download_testdata
+        from tvm.relay.testing.darknet import __darknetffi__
+        MODEL_NAME = "yolov3-tiny"
+        REPO_URL = "https://github.com/dmlc/web-data/blob/main/darknet/"
+
+        cfg_path = download_testdata(
+            "https://github.com/pjreddie/darknet/blob/master/cfg/" + MODEL_NAME + ".cfg" + "?raw=true",
+            MODEL_NAME + ".cfg",
+            module="darknet",
+        )
+        # cfg_path ="/root/.tvm_test_data/darknet/yolov3-tiny.cfg"
+        weights_path = download_testdata(
+            "https://pjreddie.com/media/files/" + MODEL_NAME + ".weights" + "?raw=true",
+            MODEL_NAME + ".weights",
+            module="darknet",
+        )
+        # weights_path = "/root/.tvm_test_data/darknet/yolov3-tiny.weights"
+
+        darknet_lib_path = download_testdata(
+            REPO_URL + "lib/" + "libdarknet2.0.so" + "?raw=true", "libdarknet2.0.so", module="darknet"
+        )
+
+        net = __darknetffi__.dlopen(darknet_lib_path).load_network(
+        cfg_path.encode("utf-8"), weights_path.encode("utf-8"), 0
+        )
+        # dshape = (env.BATCH, net.c, net.h, net.w)
+        # (1,3,416,416)
+        input_shape = (1, net.c, net.h, net.w)
+        print(input_shape)
+        dtype = "float32"
+        #(1,1000)
+        output_shape=""
+        # Start front end compilation
+        mod, params = relay.frontend.from_darknet(net, dtype=dtype, shape=input_shape)
     return mod, params, input_shape, output_shape

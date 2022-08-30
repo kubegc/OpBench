@@ -23,6 +23,7 @@ from tvm.autotvm.task import TaskExtractEnv
 from tvm.runtime.profiler_vm import VirtualMachineProfiler
 
 # python python/performance_collector/op_performance_collector.py --modelsource=local --modelname=yolov5n --target=llvm --inputname=main --ifcompare=true --executor=vm
+# python python/performance_collector/op_performance_collector.py --modelsource=local --modelname=yolov3 --target=llvm --inputname=main --ifcompare=true --executor=vm
 
 # python python/performance_collector/op_performance_collector.py --modelsource=local --modelname=resnet-18 --ifcompare=true --tuner=xgb_knob --target=pynq --trials=1000 --host=133.133.135.39 --port=9190 --iftune=true
 # python python/performance_collector/op_performance_collector.py --modelsource=local --modelname=resnet-18 --ifcompare=true --tuner=grid
@@ -116,7 +117,7 @@ def timeit_performance(executor, module, ctx):
         print(module.profile())
     else:
         timer = module.module.time_evaluator("run", ctx, number=timing_number, repeat=timing_repeat)
-        unoptimized = np.array(timer().results) * 1000 / timing_number
+        unoptimized = np.array(timer().results) * 1000 / timing_repeat
     print("runned")
     unoptimized = {
         "mean": np.mean(unoptimized),
@@ -216,26 +217,50 @@ def findConfigSpace(tasks):
 
 def extra_compile(args, mod, params):
     if args.target == 'pynq':
-        with tvm.transform.PassContext(opt_level=3):
-            with relay.quantize.qconfig(global_scale=8.0, skip_conv_layers=[0]):
-                mod = relay.quantize.quantize(mod, params=params)
-        TaskExtractEnv()
-        vta_json_env = vta.get_env()
-        start_pack = "nn.max_pool2d"
-        stop_pack = "nn.global_avg_pool2d"
-        # print(mod["main"])
-        # print(vta_json_env.TARGET)
-        # print(vta_json_env.target)
-        assert vta_json_env.BLOCK_IN == vta_json_env.BLOCK_OUT
-        relay_prog = graph_pack(
-            mod["main"],
-            vta_json_env.BATCH,
-            vta_json_env.BLOCK_OUT,
-            vta_json_env.WGT_WIDTH,
-            start_name=start_pack,
-            stop_name=stop_pack,
-        )
-        return relay_prog, tvm.IRModule.from_expr(relay_prog)
+        if not args.modelname.startswith("yolo"):
+            with tvm.transform.PassContext(opt_level=3):
+                with relay.quantize.qconfig(global_scale=8.0, skip_conv_layers=[0]):
+                    mod = relay.quantize.quantize(mod, params=params)
+            TaskExtractEnv()
+            vta_json_env = vta.get_env()
+            start_pack = "nn.max_pool2d"
+            stop_pack = "nn.global_avg_pool2d"
+            # print(mod["main"])
+            # print(vta_json_env.TARGET)
+            # print(vta_json_env.target)
+            assert vta_json_env.BLOCK_IN == vta_json_env.BLOCK_OUT
+            relay_prog = graph_pack(
+                mod["main"],
+                vta_json_env.BATCH,
+                vta_json_env.BLOCK_OUT,
+                vta_json_env.WGT_WIDTH,
+                start_name=start_pack,
+                stop_name=stop_pack,
+            )
+            return relay_prog, tvm.IRModule.from_expr(relay_prog)
+        else:
+            with tvm.transform.PassContext(opt_level=3):
+                with relay.quantize.qconfig(global_scale=23.0, skip_conv_layers=[0], store_lowbit_output=True, round_for_shift=True):
+                    mod = relay.quantize.quantize(mod, params =params)
+            TaskExtractEnv()
+            vta_json_env = vta.get_env()
+            start_pack = "nn.max_pool2d"
+            stop_pack = "cast"
+            # print(mod["main"])
+            # print(vta_json_env.TARGET)
+            # print(vta_json_env.target)
+            assert vta_json_env.BLOCK_IN == vta_json_env.BLOCK_OUT
+            relay_prog = graph_pack(
+                mod["main"],
+                vta_json_env.BATCH,
+                vta_json_env.BLOCK_OUT,
+                vta_json_env.WGT_WIDTH,
+                start_name=start_pack,
+                stop_name=stop_pack,
+                start_name_idx=4,
+                stop_name_idx=186,
+            )
+            return relay_prog, tvm.IRModule.from_expr(relay_prog)        
     return mod, mod
 
 def register_vta_tuning_tasks():
@@ -306,7 +331,7 @@ def get_lib_module_dev(args, mod, params):
                     mod,  target=tvm.target.Target(target, host=env.target_host), params=params,
                 )
         else:
-            print("do here.")
+            print("vat build do here.")
             with vta.build_config(
             opt_level=3, disabled_pass={"AlterOpLayout", "tir.CommonSubexprElimTIR"}
         ):
@@ -323,22 +348,37 @@ def get_lib_module_dev(args, mod, params):
         module = graph_executor.GraphModule(lib["default"](dev))
     return lib, module, target, dev, params
 
-def getYoloData():
-    from yolort.utils import get_image_from_url
-    import numpy as np
-    import cv2
+def getYoloData(args):
+    if args.modelname =="yolov5n":
+        from yolort.utils import get_image_from_url
+        import numpy as np
+        import cv2
 
-    in_size = 640
-    img_source = "https://huggingface.co/spaces/zhiqwang/assets/resolve/main/bus.jpg"
-    # img_source = "https://huggingface.co/spaces/zhiqwang/assets/resolve/main/zidane.jpg"
-    img = get_image_from_url(img_source)
+        in_size = 640
+        img_source = "https://huggingface.co/spaces/zhiqwang/assets/resolve/main/bus.jpg"
+        # img_source = "https://huggingface.co/spaces/zhiqwang/assets/resolve/main/zidane.jpg"
+        img = get_image_from_url(img_source)
 
-    img = img.astype("float32")
-    img = cv2.resize(img, (in_size, in_size))
+        img = img.astype("float32")
+        img = cv2.resize(img, (in_size, in_size))
 
-    img = np.transpose(img / 255.0, [2, 0, 1])
-    img = np.expand_dims(img, axis=0)
-    return img
+        img = np.transpose(img / 255.0, [2, 0, 1])
+        img = np.expand_dims(img, axis=0)
+        return img
+    else:
+        from tvm.relay.testing import darknet
+        import numpy as np
+        test_image = "person.jpg"
+        neth = 416
+        netw=416
+        img_url = "https://github.com/dmlc/web-data/blob/main/darknet/data/person.jpg?raw=true"
+        img_path = download_testdata(img_url, test_image, "data")
+        data = darknet.load_image(img_path, neth, netw).transpose(1,2,0)
+        data = data.transpose((2,0,1))
+        data = data[np.newaxis, :]
+        data = np.repeat(data, 1, axis=0)
+        return data
+
 
 
 if __name__ == "__main__":
@@ -368,20 +408,20 @@ if __name__ == "__main__":
 #     relay_prog, params = model_importer.local_nns.compile_network(env, target, args.modelname, "nn.max_pool2d", "nn.global_avg_pool2d")
 #     lib, module, target, dev, params = get_lib_module_dev(args, relay_prog, params)
   if args.modelsource == "local" :
-    local_cnns = ["resnet-","resnet3d-","mobilenet","squeezenet_v1.1","inception_v3", "yolov5n"]
+    local_cnns = ["resnet-","resnet3d-","mobilenet","squeezenet_v1.1","inception_v3", "yolov5n","yolov3"]
     if args.modelname.startswith(local_cnns[0]) or args.modelname.startswith(local_cnns[1]) or args.modelname in local_cnns:
         mod, params, input_shape, output_shape = model_importer.local_nns.get_network(args.modelname)
         relay_prog, mod = extra_compile(args, mod, params)
         if args.iftune:
             run_autoTVM(args, mod)
-            
+
         input_name = args.inputname
-        if args.modelname !="yolov5n":
+        if not args.modelname.startswith("yolo"):
             data = tvm.nd.array((np.random.uniform(size=input_shape)).astype("float32"))
         else:
-            data = getYoloData()
+            data = getYoloData(args)
         lib, module, target, dev, params = get_lib_module_dev(args, relay_prog, params)
-        if not args.modelname.startswith("yolov5"):
+        if not args.modelname.startswith("yolov"):
             module.set_input(**params)
         module.set_input(input_name, data)            
         timeit_performance(args.executor,module,dev)
