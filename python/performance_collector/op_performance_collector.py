@@ -23,8 +23,8 @@ from tvm.autotvm.task import TaskExtractEnv
 from tvm.runtime.profiler_vm import VirtualMachineProfiler
 
 # python python/performance_collector/op_performance_collector.py --modelsource=local --modelname=yolov5n --target=llvm --inputname=main --ifcompare=true --executor=vm
-# python python/performance_collector/op_performance_collector.py --modelsource=local --modelname=yolov3 --target=llvm --inputname=main --ifcompare=true --executor=vm
 
+# python python/performance_collector/op_performance_collector.py --modelsource=local --modelname=yolov3 --ifcompare=true --tuner=xgb_knob --target=pynq --trials=1000 --host=133.133.135.39 --port=9190 --iftune=true
 # python python/performance_collector/op_performance_collector.py --modelsource=local --modelname=resnet-18 --ifcompare=true --tuner=xgb_knob --target=pynq --trials=1000 --host=133.133.135.39 --port=9190 --iftune=true
 # python python/performance_collector/op_performance_collector.py --modelsource=local --modelname=resnet-18 --ifcompare=true --tuner=grid
 # python python/performance_collector/op_performance_collector.py --modelsource=local --modelname=resnet-18 --ifcompare=true --tuner=xgb --iftune=true --target=cuda --trials=3000
@@ -412,26 +412,29 @@ if __name__ == "__main__":
     if args.modelname.startswith(local_cnns[0]) or args.modelname.startswith(local_cnns[1]) or args.modelname in local_cnns:
         mod, params, input_shape, output_shape = model_importer.local_nns.get_network(args.modelname)
         relay_prog, mod = extra_compile(args, mod, params)
-        if args.iftune:
-            run_autoTVM(args, mod)
+        # if args.iftune:
+        #     run_autoTVM(args, mod)
 
         input_name = args.inputname
         if not args.modelname.startswith("yolo"):
             data = tvm.nd.array((np.random.uniform(size=input_shape)).astype("float32"))
         else:
             data = getYoloData(args)
-        lib, module, target, dev, params = get_lib_module_dev(args, relay_prog, params)
-        if not args.modelname.startswith("yolov"):
-            module.set_input(**params)
-        module.set_input(input_name, data)            
-        timeit_performance(args.executor,module,dev)
+        # lib, module, target, dev, params = get_lib_module_dev(args, relay_prog, params)
+        # if not args.modelname.startswith("yolov"):
+        #     module.set_input(**params)
+        # module.set_input(input_name, data)            
+        # timeit_performance(args.executor,module,dev)
 
         if args.ifcompare:
             print("compare")
+            # mod, params, input_shape, output_shape = model_importer.local_nns.get_network(args.modelname)
+            # relay_prog, mod = extra_compile(args, mod, params)
+ 
             with autotvm.apply_history_best("/root/github/OpBench/data/Performance/"+args.modelname+ '-' + args.tuner +"-"+args.target+"-autotvm.json") as ab:
-                # print(ab.best_by_model)
-                # print(ab.best_by_targetkey)
-                # print(ab._best_user_defined)
+                print(ab.best_by_model)
+                print(ab.best_by_targetkey)
+                print(ab._best_user_defined)
                 lib, module, target, dev, params = get_lib_module_dev(args, relay_prog, params)
                 if args.modelname !="yolov5n":
                     module.set_input(input_name, data)
