@@ -395,6 +395,7 @@ if __name__ == "__main__":
   parser.add_argument('--trials', type=int, default=10)
   parser.add_argument('--host', type=str, default=None)
   parser.add_argument('--port', type=int, default=None)
+  parser.add_argument('--num', type=int, default=None)
   args = parser.parse_args()
   autotvm.record.encode
   autotvm.measure.MeasureInput
@@ -428,9 +429,6 @@ if __name__ == "__main__":
 
         if args.ifcompare:
             print("compare")
-            # mod, params, input_shape, output_shape = model_importer.local_nns.get_network(args.modelname)
-            # relay_prog, mod = extra_compile(args, mod, params)
- 
             with autotvm.apply_history_best("/root/github/OpBench/data/Performance/"+args.modelname+ '-' + args.tuner +"-"+args.target+"-autotvm.json") as ab:
                 # print(ab.best_by_model)
                 # print(ab.best_by_targetkey)
@@ -441,6 +439,16 @@ if __name__ == "__main__":
                 else:
                     module.set_input(input_name, **{"input0": data})
                 timeit_performance(args.executor, module, dev)
+        if args.num: 
+            print("measure model %s, tuner %s, target: %s, time with %s trials"%{args.modelname, args.tuner, args.target, args.num})
+            with autotvm.apply_history_best("/root/github/OpBench/exp/partial_log/"+args.modelname+ '_' + args.tuner +"_"+args.target+"_"+str(args.num)+".json") as ab:
+                lib, module, target, dev, params = get_lib_module_dev(args, relay_prog, params)
+                if args.modelname !="yolov5n":
+                    module.set_input(input_name, data)
+                else:
+                    module.set_input(input_name, **{"input0": data})
+                timeit_performance(args.executor, module, dev)
+
     else:
         print("error local model name.")
   elif args.modelsource=="transformers":
