@@ -69,5 +69,6 @@ if __name__ == '__main__':
         print(df.size)
         worst_cost = df["costs"].max()
         best_cost = df["costs"].min()
-        df["cmp"] = (worst_cost-df["costs"])/(worst_cost-best_cost)
+        # df["cmp"] = (worst_cost-df["costs"])/(worst_cost-best_cost)
+        df["cmp"] = best_cost/df["costs"]
         df.to_csv(data_path+"/"+str(op_index)+".csv",index=False)
