@@ -1,0 +1,16 @@
+hello tvm
+ready to run
+runned
+{'mean': 0.22776596300000002, 'median': 0.22806406, 'std': 0.0014188358207421236}
+compare
+ready to run
+runned
+{'mean': 0.28469102600000007, 'median': 0.296327915, 'std': 0.034858108634486254}
+measure model resnet-18, tuner random, target: cuda, time with 100 trials
+ready to run
+runned
+{'mean': 0.301318354, 'median': 0.33454014499999996, 'std': 0.1081311020043509}
+measure model resnet-18, tuner random, target: cuda, time with 1000 trials
+ready to run
+runned
+{'mean': 0.25061749099999997, 'median': 0.21661610999999992, 'std': 0.05457266511565538}

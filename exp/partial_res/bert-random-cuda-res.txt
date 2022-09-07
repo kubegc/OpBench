@@ -1,0 +1,18 @@
+hello tvm
+run raw model
+ready to run
+runned
+{'mean': 13.692801958, 'median': 13.693158989999999, 'std': 0.03793350098653155}
+compare with best
+ready to run
+runned
+{'mean': 3.262677474, 'median': 3.1947749400000003, 'std': 0.1949622919719524}
+compare with partial results
+measure model bert, tuner random, target: cuda, time with 100 trials
+ready to run
+runned
+{'mean': 10.650430567, 'median': 10.65950164, 'std': 0.03691476210265584}
+measure model bert, tuner random, target: cuda, time with 1000 trials
+ready to run
+runned
+{'mean': 7.494353510999998, 'median': 7.4937280699999995, 'std': 0.028232412135367986}

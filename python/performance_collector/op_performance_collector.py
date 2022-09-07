@@ -395,7 +395,7 @@ if __name__ == "__main__":
   parser.add_argument('--trials', type=int, default=10)
   parser.add_argument('--host', type=str, default=None)
   parser.add_argument('--port', type=int, default=None)
-  parser.add_argument('--num', type=int, default=None)
+  parser.add_argument('--ifpartial', type=bool, default=True) # 比较100，1000，3000个trial的时间
   args = parser.parse_args()
   autotvm.record.encode
   autotvm.measure.MeasureInput
@@ -439,15 +439,18 @@ if __name__ == "__main__":
                 else:
                     module.set_input(input_name, **{"input0": data})
                 timeit_performance(args.executor, module, dev)
-        if args.num: 
-            print("measure model %s, tuner %s, target: %s, time with %s trials"%{args.modelname, args.tuner, args.target, args.num})
-            with autotvm.apply_history_best("/root/github/OpBench/exp/partial_log/"+args.modelname+ '_' + args.tuner +"_"+args.target+"_"+str(args.num)+".json") as ab:
-                lib, module, target, dev, params = get_lib_module_dev(args, relay_prog, params)
-                if args.modelname !="yolov5n":
-                    module.set_input(input_name, data)
-                else:
-                    module.set_input(input_name, **{"input0": data})
-                timeit_performance(args.executor, module, dev)
+        if args.ifpartial: 
+            nums = [100,1000]
+            for num in nums:
+                # print("measure model %s, tuner %s, target: %s, time with %d trials"%(args.modelname, args.tuner, args.target, num))
+                print("measure model {}, tuner {}, target: {}, time with {} trials".format(args.modelname, args.tuner, args.target, num))
+                with autotvm.apply_history_best("/root/github/OpBench/exp/partial_log/"+args.modelname+ '_' + args.tuner +"_"+args.target+"_"+str(num)+".json") as ab:
+                    lib, module, target, dev, params = get_lib_module_dev(args, relay_prog, params)
+                    if args.modelname !="yolov5n":
+                        module.set_input(input_name, data)
+                    else:
+                        module.set_input(input_name, **{"input0": data})
+                    timeit_performance(args.executor, module, dev)
 
     else:
         print("error local model name.")
@@ -463,18 +466,34 @@ if __name__ == "__main__":
         with tvm.transform.PassContext(opt_level=0, config={"relay.backend.use_auto_scheduler": False}):
             if args.iftune:
                 run_autoTVM(args,mod)
+            print("run raw model")
+            lib, module, target, dev, params = get_lib_module_dev(args, mod, params)
+            input_ids = tvm.nd.array((np.random.uniform(size=input_shape)).astype("int64"))
+            module.set_input("input_ids", input_ids)
+            timeit_performance(args.executor, module, dev)
+
             if args.ifcompare:
-                lib, module, target, dev, params = get_lib_module_dev(args, mod, params)
-                input_ids = tvm.nd.array((np.random.uniform(size=input_shape)).astype("int64"))
-                module.set_input("input_ids", input_ids)
-                timeit_performance(args.executor, module, dev)
+                print("compare with best")
                 with autotvm.apply_history_best("/root/github/OpBench/data/Performance/"+args.modelname+ '-' + args.tuner +"-"+args.target+"-autotvm.json") as ab:
-                    print(ab.best_by_model)
-                    print(ab.best_by_targetkey)
-                    print(ab._best_user_defined)
+                    # print(ab.best_by_model)
+                    # print(ab.best_by_targetkey)
+                    # print(ab._best_user_defined)
                     lib, module, target, dev, params = get_lib_module_dev(args, mod, params)
                     module.set_input("input_ids", input_ids)
                     timeit_performance(args.executor, module, dev)
+            
+            if args.ifpartial: 
+                print("compare with partial results")
+                nums = [100,1000]
+                for num in nums:
+                    # print("measure model %s, tuner %s, target: %s, time with %d trials"%(args.modelname, args.tuner, args.target, num))
+                    print("measure model {}, tuner {}, target: {}, time with {} trials".format(args.modelname, args.tuner, args.target, num))
+                    with autotvm.apply_history_best("/root/github/OpBench/exp/partial_log/"+args.modelname+ '_' + args.tuner +"_"+args.target+"_"+str(num)+".json") as ab:
+                        lib, module, target, dev, params = get_lib_module_dev(args, mod, params)
+                        input_ids = tvm.nd.array((np.random.uniform(size=input_shape)).astype("int64"))
+                        module.set_input("input_ids", input_ids)
+                        timeit_performance(args.executor, module, dev)
+
     elif network == "nasnetalarge":
             #target = tvm.target.Target("llvm -mcpu=core-avx2")
             # target = tvm.target.Target("llvm -mcpu=skylake-avx512")

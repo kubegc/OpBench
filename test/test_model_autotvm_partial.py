@@ -2,6 +2,9 @@
 from tvm.autotvm.record import decode, encode, pick_best
 import numpy as np
 import pandas as pd
+import argparse
+import shutil
+import os
 # 测量算子在100,500,1000此迭代中运行时间和最优时间的距离，假定3000次得到的时间为最优解
 # batch_
 def parse_logs(file_path):
@@ -47,17 +50,23 @@ def get_partial_best(modelname, tuner, target, num):
         for inp, result in zip(partial_inps, partial_results):
             f.write(encode(inp, result)+"\n")
     pick_best(partial_log_tmp, partial_log)      
+    os.remove(partial_log_tmp)
 
 if __name__ == '__main__':
-    # parser = argparse.Argumentparser()
-    # parser.add_argument("--modelname", type=str, default=none)
-    # parser.add_argument("--tuner", type=str, default=none)
-    # parser.add_argument("--target", type=str, default=none)
-    # parser.add_argument("--num", type=str, default=none)
-    # args = parser.parse_args()
-    modelname = "bert"
-    tuner = "xgb_knob"
-    target = "cuda"
-    num = 500
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--modelname", type=str, default=None)
+    parser.add_argument("--tuner", type=str, default="random")
+    parser.add_argument("--target", type=str, default="cuda")
+    parser.add_argument("--num", type=int, default=10)
+    args = parser.parse_args()
+    # modelname = "bert"
+    # tuner = "xgb_knob"
+    # target = "cuda"
+    # num = 500
+    modelname = args.modelname
+    tuner = args.tuner
+    target = args.target
+    num = args.num
+ 
     get_partial_best(modelname, tuner, target, num)
     
