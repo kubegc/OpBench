@@ -1,0 +1,10 @@
+ConfigSpace (len=143, space_map=
+   0 tile_y: Split(policy=factors, product=1, num_outputs=2) len=1
+   1 tile_x: Split(policy=factors, product=4096, num_outputs=2) len=13
+   2 tile_k: Split(policy=factors, product=1024, num_outputs=2) len=11
+)ConfigSpace (len=1001, space_map=
+   0 tile_y: Split(policy=factors, product=1, num_outputs=3) len=1
+   1 tile_x: Split(policy=factors, product=4096, num_outputs=3) len=91
+   2 tile_k: Split(policy=factors, product=1024, num_outputs=2) len=11
+   3 tile_inner: Split(policy=factors, product=1, num_outputs=2) len=1
+)

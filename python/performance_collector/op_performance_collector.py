@@ -1,4 +1,5 @@
 import onnx
+from performance_collector.util import save_time_results
 import transformers
 from tvm.contrib.download import download_testdata
 from PIL import Image
@@ -128,7 +129,7 @@ def timeit_performance(executor, module, ctx):
     # res = module.run()
     # for temp in res:
     #     print(temp)
-    return 
+    return unoptimized
 
 def run_autoTVM(args,mod):
     if args.target == 'llvm':
@@ -381,6 +382,8 @@ def getYoloData(args):
 
 
 
+
+
 if __name__ == "__main__":
   parser = argparse.ArgumentParser()
   parser.add_argument('--modelsource', type=str, default = None)
@@ -395,7 +398,7 @@ if __name__ == "__main__":
   parser.add_argument('--trials', type=int, default=10)
   parser.add_argument('--host', type=str, default=None)
   parser.add_argument('--port', type=int, default=None)
-  parser.add_argument('--ifpartial', type=bool, default=True) # 比较100，1000，3000个trial的时间
+  parser.add_argument('--ifpartial', type=bool, default=False) # 比较100，1000，3000个trial的时间
   args = parser.parse_args()
   autotvm.record.encode
   autotvm.measure.MeasureInput
@@ -408,6 +411,7 @@ if __name__ == "__main__":
 #   if args.modelsource == 'mxnet.vision':
 #     relay_prog, params = model_importer.local_nns.compile_network(env, target, args.modelname, "nn.max_pool2d", "nn.global_avg_pool2d")
 #     lib, module, target, dev, params = get_lib_module_dev(args, relay_prog, params)
+  time_results = []
   if args.modelsource == "local" :
     local_cnns = ["resnet-","resnet3d-","mobilenet","squeezenet_v1.1","inception_v3", "yolov5n","yolov3"]
     if args.modelname.startswith(local_cnns[0]) or args.modelname.startswith(local_cnns[1]) or args.modelname in local_cnns:
@@ -425,7 +429,8 @@ if __name__ == "__main__":
         if not args.modelname.startswith("yolov"):
             module.set_input(**params)
         module.set_input(input_name, data)            
-        timeit_performance(args.executor,module,dev)
+        # timeit_performance(args.executor,module,dev)
+        time_results.append(timeit_performance(args.executor,module,dev))
 
         if args.ifcompare:
             print("compare")
@@ -438,9 +443,12 @@ if __name__ == "__main__":
                     module.set_input(input_name, data)
                 else:
                     module.set_input(input_name, **{"input0": data})
-                timeit_performance(args.executor, module, dev)
+                # timeit_performance(args.executor,module,dev)
+                time_results.append(timeit_performance(args.executor,module,dev))
+
+
         if args.ifpartial: 
-            nums = [100,1000]
+            nums = [100,300,1000]
             for num in nums:
                 # print("measure model %s, tuner %s, target: %s, time with %d trials"%(args.modelname, args.tuner, args.target, num))
                 print("measure model {}, tuner {}, target: {}, time with {} trials".format(args.modelname, args.tuner, args.target, num))
@@ -450,8 +458,8 @@ if __name__ == "__main__":
                         module.set_input(input_name, data)
                     else:
                         module.set_input(input_name, **{"input0": data})
-                    timeit_performance(args.executor, module, dev)
-
+                    # timeit_performance(args.executor, module, dev)
+                    time_results.append(timeit_performance(args.executor, module, dev))
     else:
         print("error local model name.")
   elif args.modelsource=="transformers":
@@ -460,7 +468,7 @@ if __name__ == "__main__":
     batch_size = args.batchsize
     dtype = "float32"
     target = args.target
-    device = tvm.device(str(target), 0)
+    dev = tvm.device(str(target), 0)
     if network == 'bert' or network == 'gpt2' or network == 'roberta':
         mod, params, input_shape,inputs = model_importer.transformers_nns.get_network(network, batch_size, dtype=dtype, sequence=128)
         with tvm.transform.PassContext(opt_level=0, config={"relay.backend.use_auto_scheduler": False}):
@@ -470,8 +478,8 @@ if __name__ == "__main__":
             lib, module, target, dev, params = get_lib_module_dev(args, mod, params)
             input_ids = tvm.nd.array((np.random.uniform(size=input_shape)).astype("int64"))
             module.set_input("input_ids", input_ids)
-            timeit_performance(args.executor, module, dev)
-
+            # timeit_performance(args.executor, module, dev)
+            time_results.append(timeit_performance(args.executor, module, dev))
             if args.ifcompare:
                 print("compare with best")
                 with autotvm.apply_history_best("/root/github/OpBench/data/Performance/"+args.modelname+ '-' + args.tuner +"-"+args.target+"-autotvm.json") as ab:
@@ -480,19 +488,20 @@ if __name__ == "__main__":
                     # print(ab._best_user_defined)
                     lib, module, target, dev, params = get_lib_module_dev(args, mod, params)
                     module.set_input("input_ids", input_ids)
-                    timeit_performance(args.executor, module, dev)
+                    time_results.append(timeit_performance(args.executor, module, dev))
+                    # timeit_performance(args.executor, module, dev)
             
             if args.ifpartial: 
                 print("compare with partial results")
-                nums = [100,1000]
+                nums = [100,300,1000]
                 for num in nums:
-                    # print("measure model %s, tuner %s, target: %s, time with %d trials"%(args.modelname, args.tuner, args.target, num))
                     print("measure model {}, tuner {}, target: {}, time with {} trials".format(args.modelname, args.tuner, args.target, num))
                     with autotvm.apply_history_best("/root/github/OpBench/exp/partial_log/"+args.modelname+ '_' + args.tuner +"_"+args.target+"_"+str(num)+".json") as ab:
                         lib, module, target, dev, params = get_lib_module_dev(args, mod, params)
                         input_ids = tvm.nd.array((np.random.uniform(size=input_shape)).astype("int64"))
                         module.set_input("input_ids", input_ids)
-                        timeit_performance(args.executor, module, dev)
+                        time_results.append(timeit_performance(args.executor, module, dev))
+                        # timeit_performance(args.executor, module, dev)
 
     elif network == "nasnetalarge":
             #target = tvm.target.Target("llvm -mcpu=core-avx2")
@@ -501,34 +510,87 @@ if __name__ == "__main__":
         with tvm.transform.PassContext(opt_level=0, config={"relay.backend.use_auto_scheduler": False}):
             if args.iftune:
                 run_autoTVM(args,mod)
-            # lib = relay.build(mod, target=target, params=params)
-            # module = graph_executor.create(lib.get_graph_json(),lib.get_lib(), device, dump_root = '/root/github/debug_dump/' + network)
-            # input_ids = tvm.nd.array((np.random.uniform(size=input_shape)).astype("float32"))
-            # module.set_input("input0", input_ids)
+            lib = relay.build(mod, target=target, params=params)
+            # module = graph_executor.create(lib.get_graph_json(),lib.get_lib(), dev, dump_root = '/root/github/debug_dump/' + network)
+            module = graph_executor.create(lib.get_graph_json(),lib.get_lib(), dev)
+            input_ids = tvm.nd.array((np.random.uniform(size=input_shape)).astype("float32"))
+            module.set_input("input0", input_ids)
             # attention_mask = tvm.nd.array((np.random.uniform(size=shape2)).astype("int64"))
             # module.set_input("attention_mask", attention_mask)
             # module.set_input("decoder_input_ids", input_ids)
-            # print("Evaluate inference time cost...")
+            time_results.append(timeit_performance(args.executor, module, dev))
             # module.run()
+            if args.ifcompare:
+                print("compare with best")
+                with autotvm.apply_history_best("/root/github/OpBench/data/Performance/"+args.modelname+ '-' + args.tuner +"-"+args.target+"-autotvm.json") as ab:
+                    lib = relay.build(mod, target=target, params=params)
+                    # module = graph_executor.create(lib.get_graph_json(),lib.get_lib(), dev, dump_root = '/root/github/debug_dump/' + network)
+                    module = graph_executor.create(lib.get_graph_json(),lib.get_lib(), dev)
+                    input_ids = tvm.nd.array((np.random.uniform(size=input_shape)).astype("float32"))
+                    module.set_input("input0", input_ids)
+                    # attention_mask = tvm.nd.array((np.random.uniform(size=shape2)).astype("int64"))
+                    # module.set_input("attention_mask", attention_mask)
+                    # module.set_input("decoder_input_ids", input_ids)
+                    time_results.append(timeit_performance(args.executor, module, dev))
+            if args.ifpartial:
+                print("compare with partial results")
+                nums = [100,300,1000]
+                for num in nums:
+                    print("measure model {}, tuner {}, target: {}, time with {} trials".format(args.modelname, args.tuner, args.target, num))
+                    with autotvm.apply_history_best("/root/github/OpBench/exp/partial_log/"+args.modelname+ '_' + args.tuner +"_"+args.target+"_"+str(num)+".json") as ab:
+                        lib = relay.build(mod, target=target, params=params)
+                        # module = graph_executor.create(lib.get_graph_json(),lib.get_lib(), dev, dump_root = '/root/github/debug_dump/' + network)
+                        module = graph_executor.create(lib.get_graph_json(),lib.get_lib(), dev)
+                        input_ids = tvm.nd.array((np.random.uniform(size=input_shape)).astype("float32"))
+                        module.set_input("input0", input_ids)
+                        # attention_mask = tvm.nd.array((np.random.uniform(size=shape2)).astype("int64"))
+                        # module.set_input("attention_mask", attention_mask)
+                        # module.set_input("decoder_input_ids", input_ids)
+                        time_results.append(timeit_performance(args.executor, module, dev))                        
     elif network == 'lstm' or network == 'rnn' or network == 'gru':
         mod, params, input_shape,inputs = model_importer.transformers_nns.get_network(network, batch_size, dtype=dtype, sequence=128)
         with tvm.transform.PassContext(opt_level=0, config={"relay.backend.use_auto_scheduler": False}):
             if args.iftune:
                 run_autoTVM(args,mod)
-            # lib = relay.build(mod, target=target, params=params)
-            # module = graph_executor.create(lib.get_graph_json(),lib.get_lib(), device, dump_root = '/root/github/debug_dump/' + network)
-            # for key in inputs:
-            #     module.set_input(key, tvm.nd.array(inputs[key].astype("float32")))
+            lib = relay.build(mod, target=target, params=params)
+            # module = graph_executor.create(lib.get_graph_json(),lib.get_lib(), dev, dump_root = '/root/github/debug_dump/' + network)
+            module = graph_executor.create(lib.get_graph_json(),lib.get_lib(), dev)
+            for key in inputs:
+                module.set_input(key, tvm.nd.array(inputs[key].astype("float32")))
+            time_results.append(timeit_performance(args.executor, module, dev))
             # print("Evaluate inference time cost...")
             # module.run()
+            if args.ifcompare:
+                print("compare with best")
+                with autotvm.apply_history_best("/root/github/OpBench/data/Performance/"+args.modelname+ '-' + args.tuner +"-"+args.target+"-autotvm.json") as ab:
+                    lib = relay.build(mod, target=target, params=params)
+                    # module = graph_executor.create(lib.get_graph_json(),lib.get_lib(), dev, dump_root = '/root/github/debug_dump/' + network)
+                    module = graph_executor.create(lib.get_graph_json(),lib.get_lib(), dev)
+                    for key in inputs:
+                        module.set_input(key, tvm.nd.array(inputs[key].astype("float32")))
+                    time_results.append(timeit_performance(args.executor, module, dev))
+            
+            if args.ifpartial: 
+                print("compare with partial results")
+                nums = [100,300,1000]
+                for num in nums:
+                    print("measure model {}, tuner {}, target: {}, time with {} trials".format(args.modelname, args.tuner, args.target, num))
+                    with autotvm.apply_history_best("/root/github/OpBench/exp/partial_log/"+args.modelname+ '_' + args.tuner +"_"+args.target+"_"+str(num)+".json") as ab:
+                        lib = relay.build(mod, target=target, params=params)
+                        # module = graph_executor.create(lib.get_graph_json(),lib.get_lib(), dev, dump_root = '/root/github/debug_dump/' + network)
+                        module = graph_executor.create(lib.get_graph_json(),lib.get_lib(), dev)
+                        for key in inputs:
+                            module.set_input(key, tvm.nd.array(inputs[key].astype("float32")))
+                        time_results.append(timeit_performance(args.executor, module, dev))
+                        # timeit_performance(args.executor, module, dev)
     elif network == 'dpn68':
         mod, params, input_shape,inputs = model_importer.transformers_nns.get_network(network, batch_size, dtype=dtype, sequence=128)
         with tvm.transform.PassContext(opt_level=0, config={"relay.backend.use_auto_scheduler": False}):
             if args.iftune:
                 run_autoTVM(args,mod)
             # lib = relay.build(mod, target=target, params=params)
-            # # module = graph_executor.GraphModule(lib["default"](device))
-            # module = graph_executor.create(lib.get_graph_json(),lib.get_lib(), device, dump_root = '/root/github/debug_dump/' + network)
+            # # module = graph_executor.GraphModule(lib["default"](dev))
+            # module = graph_executor.create(lib.get_graph_json(),lib.get_lib(), dev, dump_root = '/root/github/debug_dump/' + network)
             # input_ids = tvm.nd.array((np.random.uniform(size=input_shape)).astype("float32"))
             # module.set_input("input0", input_ids)
             # print("Evaluate inference time cost...")
@@ -568,7 +630,7 @@ if __name__ == "__main__":
         # timeit_performance(module)
   else:
       print("error model source.")
-
+  save_time_results(args, time_results)
 # base_path = '/root/github/onnx-models/'
 # dump_path = '/root/github/debug_dump/'
 # target = "llvm"

@@ -30,6 +30,7 @@ def get_best_op_cost(modelname, target,op_inp, tuners=["grid","random","xgb","xg
         for inp, result in zip(inps, results):
             if inp.task.name == op_inp.task.name and inp.task.args == op_inp.task.args:
                 res = min(res, np.mean(result.costs))
+    print("best cost for {} is {}".format(op_inp.task.name, res))
     return res
 
 if __name__ == '__main__':
@@ -80,8 +81,9 @@ if __name__ == '__main__':
                     # item["cmp"] = 0.0
                     df = df.append(item, ignore_index=True)
         print(df.size)
-        worst_cost = df["costs"].max()
-        best_cost = df["costs"].min()
+        # worst_cost = df["costs"].max()
+        # best_cost = df["costs"].min()
         # df["cmp"] = (worst_cost-df["costs"])/(worst_cost-best_cost)
+        best_cost = get_best_op_cost(modelname, target, inp)
         df["cmp"] = best_cost/df["costs"]
         df.to_csv(data_path+"/"+str(op_index)+".csv",index=False)

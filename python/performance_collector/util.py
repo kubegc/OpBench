@@ -1,6 +1,7 @@
 import os
 import json
 from unittest import result
+import pandas as pd
 
 def collect_tile_size(base_path, suffix):
     for root, dirs, files in os.walk(base_path):
@@ -30,4 +31,24 @@ def get_autotvm_tile_size(line):
             resut = resut + temp_sum
     return resut
 
-collect_tile_size("/root/github/OpBench/data/Performance/", ".json")
+# collect_tile_size("/root/github/OpBench/data/Performance/", ".json")
+def save_time_results(args,time_results ):
+    if args.ifpartial is False:
+        return
+    dataPath = "/root/github/OpBench/exp/partial_res/"+args.target+".csv"
+    if os.path.exists(dataPath):
+        df = pd.read_csv(dataPath)
+    else:
+        df = pd.DataFrame(columns = ["modelname","tuner","0","100","300","1000","3000"])
+    df = df.append({
+        "modelname": args.modelname,
+        "tuner":args.tuner,
+        "0": time_results[0]["mean"],
+        "100": time_results[2]["mean"],
+        "300":time_results[3]["mean"],
+        "1000":time_results[4]["mean"],
+        "3000":time_results[1]["mean"],
+    })
+    df.to_csv(dataPath, index=False)
+    return 
+    

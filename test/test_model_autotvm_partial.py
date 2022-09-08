@@ -53,12 +53,12 @@ def get_partial_best(modelname, tuner, target, num):
     os.remove(partial_log_tmp)
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--modelname", type=str, default=None)
-    parser.add_argument("--tuner", type=str, default="random")
-    parser.add_argument("--target", type=str, default="cuda")
-    parser.add_argument("--num", type=int, default=10)
-    args = parser.parse_args()
+    # parser = argparse.ArgumentParser() 
+    # parser.add_argument("--modelname", type=str, default=None)
+    # parser.add_argument("--tuner", type=str, default="random")
+    # parser.add_argument("--target", type=str, default="cuda")
+    # parser.add_argument("--num", type=int, default=10)
+    # args = parser.parse_args()
     # modelname = "bert"
     # tuner = "xgb_knob"
     # target = "cuda"
@@ -67,6 +67,13 @@ if __name__ == '__main__':
     tuner = args.tuner
     target = args.target
     num = args.num
- 
-    get_partial_best(modelname, tuner, target, num)
+    models = ["inception_v3","mobilenet", "nasnetalarge", "roberta"]
+    tuners =["xgb_knob"]
+    targets = ["llvm","cuda"]
+    nums = [100,300,1000]
+    for modelname in models:
+        for tuner in tuners:
+            for target in targets:
+                for num in nums: 
+                    get_partial_best(modelname, tuner, target, num)
     
