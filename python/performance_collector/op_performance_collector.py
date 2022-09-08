@@ -448,7 +448,7 @@ if __name__ == "__main__":
 
 
         if args.ifpartial: 
-            nums = [100,300,1000]
+            nums = [100,300,500,1000]
             for num in nums:
                 # print("measure model %s, tuner %s, target: %s, time with %d trials"%(args.modelname, args.tuner, args.target, num))
                 print("measure model {}, tuner {}, target: {}, time with {} trials".format(args.modelname, args.tuner, args.target, num))
@@ -493,14 +493,14 @@ if __name__ == "__main__":
             
             if args.ifpartial: 
                 print("compare with partial results")
-                nums = [100,300,1000]
-                for num in nums:
-                    print("measure model {}, tuner {}, target: {}, time with {} trials".format(args.modelname, args.tuner, args.target, num))
-                    with autotvm.apply_history_best("/root/github/OpBench/exp/partial_log/"+args.modelname+ '_' + args.tuner +"_"+args.target+"_"+str(num)+".json") as ab:
-                        lib, module, target, dev, params = get_lib_module_dev(args, mod, params)
-                        input_ids = tvm.nd.array((np.random.uniform(size=input_shape)).astype("int64"))
-                        module.set_input("input_ids", input_ids)
-                        time_results.append(timeit_performance(args.executor, module, dev))
+            nums = [100,300,500,1000]
+            for num in nums:
+                print("measure model {}, tuner {}, target: {}, time with {} trials".format(args.modelname, args.tuner, args.target, num))
+                with autotvm.apply_history_best("/root/github/OpBench/exp/partial_log/"+args.modelname+ '_' + args.tuner +"_"+args.target+"_"+str(num)+".json") as ab:
+                    lib, module, target, dev, params = get_lib_module_dev(args, mod, params)
+                    input_ids = tvm.nd.array((np.random.uniform(size=input_shape)).astype("int64"))
+                    module.set_input("input_ids", input_ids)
+                    time_results.append(timeit_performance(args.executor, module, dev))
                         # timeit_performance(args.executor, module, dev)
 
     elif network == "nasnetalarge":
@@ -515,9 +515,6 @@ if __name__ == "__main__":
             module = graph_executor.create(lib.get_graph_json(),lib.get_lib(), dev)
             input_ids = tvm.nd.array((np.random.uniform(size=input_shape)).astype("float32"))
             module.set_input("input0", input_ids)
-            # attention_mask = tvm.nd.array((np.random.uniform(size=shape2)).astype("int64"))
-            # module.set_input("attention_mask", attention_mask)
-            # module.set_input("decoder_input_ids", input_ids)
             time_results.append(timeit_performance(args.executor, module, dev))
             # module.run()
             if args.ifcompare:
@@ -528,13 +525,10 @@ if __name__ == "__main__":
                     module = graph_executor.create(lib.get_graph_json(),lib.get_lib(), dev)
                     input_ids = tvm.nd.array((np.random.uniform(size=input_shape)).astype("float32"))
                     module.set_input("input0", input_ids)
-                    # attention_mask = tvm.nd.array((np.random.uniform(size=shape2)).astype("int64"))
-                    # module.set_input("attention_mask", attention_mask)
-                    # module.set_input("decoder_input_ids", input_ids)
                     time_results.append(timeit_performance(args.executor, module, dev))
             if args.ifpartial:
                 print("compare with partial results")
-                nums = [100,300,1000]
+                nums = [100,300,500,1000]
                 for num in nums:
                     print("measure model {}, tuner {}, target: {}, time with {} trials".format(args.modelname, args.tuner, args.target, num))
                     with autotvm.apply_history_best("/root/github/OpBench/exp/partial_log/"+args.modelname+ '_' + args.tuner +"_"+args.target+"_"+str(num)+".json") as ab:
@@ -543,9 +537,6 @@ if __name__ == "__main__":
                         module = graph_executor.create(lib.get_graph_json(),lib.get_lib(), dev)
                         input_ids = tvm.nd.array((np.random.uniform(size=input_shape)).astype("float32"))
                         module.set_input("input0", input_ids)
-                        # attention_mask = tvm.nd.array((np.random.uniform(size=shape2)).astype("int64"))
-                        # module.set_input("attention_mask", attention_mask)
-                        # module.set_input("decoder_input_ids", input_ids)
                         time_results.append(timeit_performance(args.executor, module, dev))                        
     elif network == 'lstm' or network == 'rnn' or network == 'gru':
         mod, params, input_shape,inputs = model_importer.transformers_nns.get_network(network, batch_size, dtype=dtype, sequence=128)

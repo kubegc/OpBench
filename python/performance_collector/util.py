@@ -39,16 +39,19 @@ def save_time_results(args,time_results ):
     if os.path.exists(dataPath):
         df = pd.read_csv(dataPath)
     else:
-        df = pd.DataFrame(columns = ["modelname","tuner","0","100","300","1000","3000"])
+        df = pd.DataFrame(columns = ["modelname","tuner","0","100","300","500","1000","3000"])
+    # print(time_results[0])
+    # print(time_results[1])
     df = df.append({
         "modelname": args.modelname,
         "tuner":args.tuner,
         "0": time_results[0]["mean"],
         "100": time_results[2]["mean"],
         "300":time_results[3]["mean"],
-        "1000":time_results[4]["mean"],
+        "500": time_results[4]["mean"],
+        "1000":time_results[5]["mean"],
         "3000":time_results[1]["mean"],
-    })
+    }, ignore_index=True)
     df.to_csv(dataPath, index=False)
     return 
     

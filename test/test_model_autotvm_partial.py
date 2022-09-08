@@ -63,14 +63,17 @@ if __name__ == '__main__':
     # tuner = "xgb_knob"
     # target = "cuda"
     # num = 500
-    modelname = args.modelname
-    tuner = args.tuner
-    target = args.target
-    num = args.num
-    models = ["inception_v3","mobilenet", "nasnetalarge", "roberta"]
-    tuners =["xgb_knob"]
-    targets = ["llvm","cuda"]
-    nums = [100,300,1000]
+    # modelname = args.modelname
+    # tuner = args.tuner
+    # target = args.target
+    # num = args.num
+    # models = ["inception_v3","mobilenet", "nasnetalarge", "roberta"]
+    # tuners =["xgb_knob"]
+    # targets = ["llvm","cuda"]
+    models = ["bert","resnet-18"]
+    tuners =["xgb_knob","random","grid","xgb"]
+    targets = ["cuda"]
+    nums = [100,300,500,1000]
     for modelname in models:
         for tuner in tuners:
             for target in targets:
