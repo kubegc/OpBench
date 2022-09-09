@@ -9,13 +9,23 @@ resPath="/root/github/OpBench/exp/partial_res/"
 # targets=("cuda")
 # modelsources=("local" "transformers")
 
-# other models
-models=("inception_v3" "mobilenet" "roberta" "nasnetalarge")
+# # other models
+# models=("inception_v3" "mobilenet" "roberta" "nasnetalarge")
+# tuners=("xgb_knob")
+# targets=("llvm" "cuda")
+# modelsources=("local" "local" "transformers" "transformers")
+
+# # resnet18 bert
+# models=("resnet-18" "bert")
+# tuners=("xgb_knob")
+# targets=("llvm")
+# modelsources=("local" "transformers")
+
+# resnet18 bert
+models=("resnet-18" "yolov3")
 tuners=("xgb_knob")
-targets=("llvm" "cuda")
-modelsources=("local" "local" "transformers" "transformers")
-
-
+targets=("pynq")
+modelsources=("local" "local")
 # for model in ${models[*]} 
 for((i=0; i<${#models[*]};i++))
 do
@@ -26,7 +36,8 @@ do
     for target in ${targets[*]}
     do
       echo "profile model ${model} modelsource ${modelsource} target ${target} tuner ${tuner}"
-      python ${pyScriptPath} --modelsource=${modelsource} --modelname=${model} --ifcompare=true --tuner=${tuner} --ifpartial=true --target=${target}
+      # python ${pyScriptPath} --modelsource=${modelsource} --modelname=${model} --ifcompare=true --tuner=${tuner} --ifpartial=true --target=${target}
+      python ${pyScriptPath} --modelsource=${modelsource} --modelname=${model} --ifcompare=true --tuner=${tuner} --ifpartial=true --target=${target} --host=133.133.135.71 --port=9190
     done
   done
 done

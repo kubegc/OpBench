@@ -98,7 +98,7 @@ if __name__ == '__main__':
     data_path = "/root/github/OpBench/exp/tiles_thread/"+modelname+"_"+tuner+"_"+target
     log = "/root/github/OpBench/data/Performance/"+modelname+ '-' + tuner +"-"+target+"-autotvm.json"
     tmp_log = log + ".tmp"
-    num = 20
+    num = 2
     best_inps, best_results = parse_logs(log)
     inps, results = parse_logs(tmp_log)
 
@@ -145,7 +145,7 @@ if __name__ == '__main__':
                 "costs": np.mean(res_slice_best.costs),
                 "best_costs": np.mean(res.costs),
                 "all_cost": res_slice_best.all_cost,
-                "log":(np.log(np.mean(res_slice_best.costs)))/(np.log(np.mean(res.costs))),
+                "log":(np.mean(res.costs))/(np.mean(res_slice_best.costs)),
             }    
             df = df.append(item,ignore_index=True)
         df.to_csv(data_path+"/"+str(op_index)+".csv",index=False)    

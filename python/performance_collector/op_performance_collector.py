@@ -51,6 +51,7 @@ from tvm.runtime.profiler_vm import VirtualMachineProfiler
 # python python/performance_collector/op_performance_collector.py --modelsource=transformers --modelname=nasnetalarge --target=llvm
 # python python/performance_collector/op_performance_collector.py --modelsource=transformers --modelname=nasnetalarge --target=cuda
 # python python/performance_collector/op_performance_collector.py --modelsource=transformers --modelname=lstm --target=llvm
+# python python/performance_collector/op_performance_collector.py --modelsource=transformers --modelname=lstm --ifcompare=true --tuner=xgb_knob --target=cuda --trials=3000 --iftune=true
 # python python/performance_collector/op_performance_collector.py --modelsource=transformers --modelname=lstm --target=cuda
 # python python/performance_collector/op_performance_collector.py --modelsource=remoteonnx --modelname=https://github.com/onnx/models/blob/master/text/machine_comprehension/t5/model/t5-decoder-with-lm-head-12.tar.gz --target=llvm 
 # python python/performance_collector/op_performance_collector.py --modelsource=remoteonnx --modelname=https://github.com/onnx/models/blob/master/text/machine_comprehension/t5/model/t5-decoder-with-lm-head-12.tar.gz --target=cuda --iftune=true --ifcompare=true

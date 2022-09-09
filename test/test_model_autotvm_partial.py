@@ -70,9 +70,12 @@ if __name__ == '__main__':
     # models = ["inception_v3","mobilenet", "nasnetalarge", "roberta"]
     # tuners =["xgb_knob"]
     # targets = ["llvm","cuda"]
-    models = ["bert","resnet-18"]
-    tuners =["xgb_knob","random","grid","xgb"]
-    targets = ["cuda"]
+    # models = ["bert","resnet-18"]
+    # tuners =["xgb_knob","random","grid","xgb"]
+    # targets = ["cuda"]
+    models = ["yolov3","resnet-18"]
+    tuners =["xgb_knob"]
+    targets = ["pynq"]
     nums = [100,300,500,1000]
     for modelname in models:
         for tuner in tuners:
