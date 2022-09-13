@@ -173,6 +173,9 @@ def run_autoTVM(args,mod):
     elif args.target == 'pynq':
         tracker_host = os.environ.get("TVM_TRACKER_HOST", args.host)
         tracker_port = int(os.environ.get("TVM_TRACKER_PORT", args.port))
+        print("tracker host and port: ")
+        print(tracker_host)
+        print(tracker_port)
         # Load VTA parameters from the 3rdparty/vta-hw/config/vta_config.json file
         env = vta.get_env()
         device = "vta"
@@ -184,13 +187,13 @@ def run_autoTVM(args,mod):
             "n_trial": args.trials,
             "early_stopping": None,
             "measure_option": autotvm.measure_option(
-                builder=autotvm.LocalBuilder(timeout=100),
+                builder=autotvm.LocalBuilder(timeout=300),
                 runner=autotvm.RPCRunner(
                     env.TARGET,
                     host=tracker_host,
                     port=tracker_port,
                     number=5,
-                    timeout=60,
+                    timeout=300,
                     module_loader=vta.module_loader(),
                     # check_correctness=True, # TODO: re-enable when check_correctness works again.
                 ),

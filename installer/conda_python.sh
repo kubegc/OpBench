@@ -1,7 +1,7 @@
 # x86 or aarch64
-architecture = $0
+architecture=$0
 # python version 3.7,3.8
-version = $1
+version=$1
 if [ $architecture = "x86" -a $version = "3.8" ]; then
   wget -O Miniconda3.sh https://repo.anaconda.com/miniconda/Miniconda3-py38_4.12.0-Linux-x86_64.sh
 elif [ $architecture = "aarch64" -a $version = "3.8" ]; then
@@ -10,6 +10,7 @@ elif [ $architecture = "x86" -a $version = "3.7" ]; then
   wget -O Miniconda3.sh https://repo.anaconda.com/miniconda/Miniconda3-py37_4.12.0-Linux-x86_64.sh
 elif [ $architecture = "aarch64" -a $version = "3.7" ]; then
   wget -O Miniconda3.sh https://repo.anaconda.com/miniconda/Miniconda3-py37_4.12.0-Linux-aarch64.sh
+fi
 
 chmod 777 ./Miniconda3.sh
 bash ./Miniconda3.sh
