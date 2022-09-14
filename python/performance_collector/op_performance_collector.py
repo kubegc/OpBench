@@ -25,8 +25,8 @@ from tvm.runtime.profiler_vm import VirtualMachineProfiler
 
 # python python/performance_collector/op_performance_collector.py --modelsource=local --modelname=yolov5n --target=llvm --inputname=main --ifcompare=true --executor=vm
 
-# python python/performance_collector/op_performance_collector.py --modelsource=local --modelname=yolov3 --ifcompare=true --tuner=xgb_knob --target=pynq --trials=1000 --host=133.133.135.39 --port=9190 --iftune=true
-# python python/performance_collector/op_performance_collector.py --modelsource=local --modelname=resnet-18 --ifcompare=true --tuner=xgb_knob --target=pynq --trials=1000 --host=133.133.135.39 --port=9190 --iftune=true
+# python python/performance_collector/op_performance_collector.py --modelsource=local --modelname=yolov3 --ifcompare=true --tuner=xgb_knob --target=pynq --trials=1000 --host=133.133.135.71 --port=9190 --iftune=true
+# python python/performance_collector/op_performance_collector.py --modelsource=local --modelname=resnet-18 --ifcompare=true --tuner=xgb_knob --target=pynq --trials=1000 --host=133.133.135.71 --port=9190 --iftune=true
 # python python/performance_collector/op_performance_collector.py --modelsource=local --modelname=resnet-18 --ifcompare=true --tuner=grid
 # python python/performance_collector/op_performance_collector.py --modelsource=local --modelname=resnet-18 --ifcompare=true --tuner=xgb --iftune=true --target=cuda --trials=3000
 # python python/performance_collector/op_performance_collector.py --modelsource=local --modelname=resnet-18 --ifcompare=true --tuner=xgb --iftune=true --target=pynq --trials=1500 --host=133.133.135.39 --port=9191
@@ -222,7 +222,7 @@ def findConfigSpace(tasks):
 
 def extra_compile(args, mod, params):
     if args.target == 'pynq':
-        if not args.modelname.startswith("yolo"):
+        if args.modelname.startswith("resnet"): # resnet-18
             with tvm.transform.PassContext(opt_level=3):
                 with relay.quantize.qconfig(global_scale=8.0, skip_conv_layers=[0]):
                     mod = relay.quantize.quantize(mod, params=params)
@@ -230,6 +230,7 @@ def extra_compile(args, mod, params):
             vta_json_env = vta.get_env()
             start_pack = "nn.max_pool2d"
             stop_pack = "nn.global_avg_pool2d"
+            print(mod)
             # print(mod["main"])
             # print(vta_json_env.TARGET)
             # print(vta_json_env.target)
@@ -243,7 +244,7 @@ def extra_compile(args, mod, params):
                 stop_name=stop_pack,
             )
             return relay_prog, tvm.IRModule.from_expr(relay_prog)
-        else:
+        if args.modelname.startswith("yolo"): # yolov3
             with tvm.transform.PassContext(opt_level=3):
                 with relay.quantize.qconfig(global_scale=23.0, skip_conv_layers=[0], store_lowbit_output=True, round_for_shift=True):
                     mod = relay.quantize.quantize(mod, params =params)
@@ -255,6 +256,7 @@ def extra_compile(args, mod, params):
             # print(vta_json_env.TARGET)
             # print(vta_json_env.target)
             assert vta_json_env.BLOCK_IN == vta_json_env.BLOCK_OUT
+            print(mod)
             relay_prog = graph_pack(
                 mod["main"],
                 vta_json_env.BATCH,
@@ -265,7 +267,34 @@ def extra_compile(args, mod, params):
                 start_name_idx=4,
                 stop_name_idx=186,
             )
-            return relay_prog, tvm.IRModule.from_expr(relay_prog)        
+            return relay_prog, tvm.IRModule.from_expr(relay_prog)    
+        if args.modelname.startswith("bert"):
+            # input shape需要为4维度，无法支持
+            with tvm.transform.PassContext(opt_level=3):
+                with relay.quantize.qconfig(global_scale=23.0, store_lowbit_output=True, round_for_shift=True):
+                    mod = relay.quantize.quantize(mod, params =params)
+            TaskExtractEnv()
+            print(mod)
+            vta_json_env = vta.get_env()
+            start_pack = "cast"
+            stop_pack = "tanh"
+            # print(mod["main"])
+            # print(vta_json_env.TARGET)
+            # print(vta_json_env.target)
+            assert vta_json_env.BLOCK_IN == vta_json_env.BLOCK_OUT
+            print(mod)
+        
+            relay_prog = graph_pack(
+                mod["main"],
+                vta_json_env.BATCH,
+                vta_json_env.BLOCK_OUT,
+                vta_json_env.WGT_WIDTH,
+                start_name=start_pack,
+                stop_name=stop_pack,
+                start_name_idx=0,
+                stop_name_idx=1083,
+            )
+            return relay_prog, tvm.IRModule.from_expr(relay_prog)            
     return mod, mod
 
 def register_vta_tuning_tasks():
@@ -341,7 +370,8 @@ def get_lib_module_dev(args, mod, params):
             opt_level=3, disabled_pass={"AlterOpLayout", "tir.CommonSubexprElimTIR"}
         ):
                 lib = relay.build(
-                    relay_prog, target=tvm.target.Target(target, host=env.target_host), params=params, 
+                    # relay_prog, target=tvm.target.Target(target, host=env.target_host), params=params, 
+                    mod, target=tvm.target.Target(target, host=env.target_host), params=params, 
                 )
         # Export library
         print("Upload...")
@@ -471,7 +501,9 @@ if __name__ == "__main__":
     network = args.modelname
     batch_size = args.batchsize
     dtype = "float32"
-    target = args.target
+    if args.target != 'pynq':
+        target = args.target
+    print("target is {}".format(target))
     dev = tvm.device(str(target), 0)
     if network == 'bert' or network == 'gpt2' or network == 'roberta':
         mod, params, input_shape,inputs = model_importer.transformers_nns.get_network(network, batch_size, dtype=dtype, sequence=128)
@@ -479,6 +511,7 @@ if __name__ == "__main__":
             if args.iftune:
                 run_autoTVM(args,mod)
             print("run raw model")
+            # relay_prog, mod = extra_compile(args, mod, params)
             lib, module, target, dev, params = get_lib_module_dev(args, mod, params)
             input_ids = tvm.nd.array((np.random.uniform(size=input_shape)).astype("int64"))
             module.set_input("input_ids", input_ids)
@@ -548,7 +581,7 @@ if __name__ == "__main__":
             if args.iftune:
                 run_autoTVM(args,mod)
             lib = relay.build(mod, target=target, params=params)
-            # module = graph_executor.create(lib.get_graph_json(),lib.get_lib(), dev, dump_root = '/root/github/debug_dump/' + network)
+            # m6odule = graph_executor.create(lib.get_graph_json(),lib.get_lib(), dev, dump_root = '/root/github/debug_dump/' + network)
             module = graph_executor.create(lib.get_graph_json(),lib.get_lib(), dev)
             for key in inputs:
                 module.set_input(key, tvm.nd.array(inputs[key].astype("float32")))

@@ -9,13 +9,13 @@
             "program": "${file}",
             "console": "integratedTerminal",
             "args":[
-                "--modelsource","local",
-                "--modelname","yolov3",
+                "--modelsource","transformers",
+                "--modelname","bert",
                 "--target","pynq",
-                "--inputname","data",
+                // "--inputname","data",
                 "--host","133.133.135.71",
                 "--port","9190",
-                "--iftune", "true",
+                // "--iftune", "true",
             ],
         }
     ]
